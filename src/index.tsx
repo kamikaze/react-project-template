@@ -1,15 +1,21 @@
-import React from 'react';
+import React, {Suspense} from 'react';
 import ReactDOM from 'react-dom/client';
 import './index.css';
 import App from './App';
 import reportWebVitals from './reportWebVitals';
+import {ConfigProvider, Spin} from "antd";
+import lvLV from 'antd/lib/locale/lv_LV';
 
 const root = ReactDOM.createRoot(
   document.getElementById('root') as HTMLElement
 );
 root.render(
   <React.StrictMode>
-    <App />
+    <Suspense fallback={<Spin/>}>
+      <ConfigProvider locale={lvLV}>
+        <App/>
+      </ConfigProvider>
+    </Suspense>
   </React.StrictMode>
 );
 
