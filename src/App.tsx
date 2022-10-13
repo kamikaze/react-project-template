@@ -2,7 +2,6 @@ import React from 'react';
 import './App.css';
 import {
   Navigate,
-  NavLink,
   Route,
   RouterProvider,
   createBrowserRouter,
