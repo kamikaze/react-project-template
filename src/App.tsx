@@ -1,4 +1,5 @@
 import React from 'react';
+import 'antd/dist/reset.css';
 import './App.css';
 import {
   Navigate,
@@ -7,6 +8,7 @@ import {
   createBrowserRouter,
   createRoutesFromElements
 } from 'react-router-dom';
+
 import {HomePage} from './pages/HomePage';
 import {AdminPage} from './pages/AdminPage';
 import {TeamListPage} from './pages/TeamListPage';

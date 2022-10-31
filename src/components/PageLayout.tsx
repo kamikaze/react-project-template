@@ -3,7 +3,8 @@ import React from 'react';
 import config from '../config';
 import {Breadcrumb, Layout, Menu} from 'antd';
 import Icon, {AuditOutlined, LoginOutlined, LogoutOutlined, SettingOutlined, SolutionOutlined} from '@ant-design/icons';
-import {useTranslation} from "react-i18next";
+import '../i18n/config';
+import { useTranslation } from 'react-i18next';
 
 const { Content, Header, Sider } = Layout;
 
