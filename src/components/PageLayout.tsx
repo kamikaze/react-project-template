@@ -5,6 +5,7 @@ import {Breadcrumb, Layout, Menu} from 'antd';
 import Icon, {AuditOutlined, LoginOutlined, LogoutOutlined, SettingOutlined, SolutionOutlined} from '@ant-design/icons';
 import '../i18n/config';
 import { useTranslation } from 'react-i18next';
+import { FlagIcon } from 'react-flag-kit';
 
 const { Content, Header, Sider } = Layout;
 
@@ -40,6 +41,14 @@ const PageLayout = () => {
               <span>{t('Users')}</span>
             </NavLink>
           </Menu.Item>
+          <Menu.SubMenu key="SubMenu" title="Latviešu" icon={<FlagIcon code="LV" size={16} />}>
+            <Menu.Item key="two" icon={<FlagIcon code="US" size={16} />}>
+              English
+            </Menu.Item>
+            <Menu.Item key="three" icon={<FlagIcon code="LV" size={16} />}>
+              Latviešu
+            </Menu.Item>
+          </Menu.SubMenu>
           <Menu.Item key='login'>
             <NavLink to={config.PATH_ROOT + '/login'}>
               <LoginOutlined />
