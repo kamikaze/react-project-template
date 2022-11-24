@@ -9,6 +9,7 @@ import lvLV from 'antd/lib/locale/lv_LV';
 const root = ReactDOM.createRoot(
   document.getElementById('root') as HTMLElement
 );
+
 root.render(
   <React.StrictMode>
     <Suspense fallback={<Spin/>}>

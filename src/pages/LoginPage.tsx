@@ -1,4 +1,4 @@
-import {useLocation, useNavigate} from "react-router-dom";
+// import {useLocation, useNavigate} from "react-router-dom";
 import { Button, Form, Input, Layout, message } from 'antd';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
@@ -15,10 +15,10 @@ const tailLayout = {
 };
 
 const LoginPage = () => {
-  const navigate = useNavigate();
-  const location = useLocation();
+  // const navigate = useNavigate();
+  // const location = useLocation();
   const { t } = useTranslation();
-  const fromPage = location.state?.from?.pathname || '/';
+  // const fromPage = location.state?.from?.pathname || '/';
 
   const onFinish = async (values: any) => {
     let body = new URLSearchParams();
