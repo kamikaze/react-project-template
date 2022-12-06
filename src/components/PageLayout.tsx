@@ -1,4 +1,4 @@
-import {NavLink, Outlet} from 'react-router-dom';
+import {NavLink, Outlet, useNavigate} from 'react-router-dom';
 import React from 'react';
 import config from '../config';
 import {Breadcrumb, Layout, Menu} from 'antd';
@@ -6,10 +6,13 @@ import Icon, {AuditOutlined, LoginOutlined, LogoutOutlined, SettingOutlined, Sol
 import '../i18n/config';
 import { useTranslation } from 'react-i18next';
 import { FlagIcon } from 'react-flag-kit';
+import {useAuth} from "../hook/useAuth";
 
 const { Content, Header, Sider } = Layout;
 
 const PageLayout = () => {
+  const {signout} = useAuth();
+  const navigate = useNavigate();
   const { t } = useTranslation();
 
   return (
@@ -21,6 +24,12 @@ const PageLayout = () => {
             <NavLink to={config.PATH_ROOT + '/'}>
               <SolutionOutlined />
               <span>{t('Portal')}</span>
+            </NavLink>
+          </Menu.Item>
+          <Menu.Item key='loyalty'>
+            <NavLink to={config.PATH_ROOT + '/loyalty'}>
+              <SolutionOutlined />
+              <span>{t('Loyalty')}</span>
             </NavLink>
           </Menu.Item>
           <Menu.Item key='admin'>
@@ -55,11 +64,9 @@ const PageLayout = () => {
               <span>{t('Login')}</span>
             </NavLink>
           </Menu.Item>
-          <Menu.Item key='logout'>
-            <NavLink to={config.PATH_ROOT + '/logout'}>
-              <LogoutOutlined />
-              <span>{t('Logout')}</span>
-            </NavLink>
+          <Menu.Item key='logout' onClick={() => signout(() => navigate('/', {replace: true}))}>
+            <LogoutOutlined />
+            <span>{t('Logout')}</span>
           </Menu.Item>
         </Menu>
       </Header>
@@ -68,12 +75,12 @@ const PageLayout = () => {
                collapsedWidth={0}>
           <Menu
             mode='inline'
-            defaultSelectedKeys={['/school/portal/test-result-summary']}
+            defaultSelectedKeys={['/portal/test-result-summary']}
             defaultOpenKeys={['sub1']}
             style={{ height: '100%', borderRight: 0 }}
           >
-            <Menu.Item icon={<AuditOutlined />} key='/school/portal/test-result-summary'>
-              <NavLink to='/school/portal/test-result-summary'>
+            <Menu.Item icon={<AuditOutlined />} key='/portal/test-result-summary'>
+              <NavLink to='/portal/test-result-summary'>
                 <Icon type='home' />
                 <span>{t('Test result summary')}</span>
               </NavLink>

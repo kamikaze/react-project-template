@@ -5,7 +5,7 @@ type AuthContextType = {
   signin: (newUser: string, cb: CallableFunction) => void;
   signout: (cb: CallableFunction) => void;
 }
-export const AuthContext = createContext<AuthContextType | null>(null);
+export const AuthContext = createContext<AuthContextType>({} as AuthContextType);
 
 interface Props {
   children: JSX.Element
