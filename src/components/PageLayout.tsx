@@ -26,12 +26,6 @@ const PageLayout = () => {
               <span>{t('Portal')}</span>
             </NavLink>
           </Menu.Item>
-          <Menu.Item key='loyalty'>
-            <NavLink to={config.PATH_ROOT + '/loyalty'}>
-              <SolutionOutlined />
-              <span>{t('Loyalty')}</span>
-            </NavLink>
-          </Menu.Item>
           <Menu.Item key='admin'>
             <NavLink to={config.PATH_ROOT + '/admin'}>
               <SettingOutlined />
