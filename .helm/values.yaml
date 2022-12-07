@@ -9,7 +9,7 @@ frontend:
     repository: "docker-repo.localhost:5050/repo/frontend"
     pullPolicy: IfNotPresent
     # Overrides the image tag whose default is the chart appVersion.
-    tag: "develop-f6e8f7ed"
+    tag: "develop:latest"
   service:
     type: ClusterIP
     port: 8080
