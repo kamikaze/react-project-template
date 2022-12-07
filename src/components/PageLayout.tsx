@@ -1,11 +1,11 @@
-import {NavLink, Outlet, useNavigate} from 'react-router-dom';
+import {NavLink, Outlet, useLocation, useNavigate} from 'react-router-dom';
 import React from 'react';
 import config from '../config';
 import {Breadcrumb, Layout, Menu} from 'antd';
 import Icon, {AuditOutlined, LoginOutlined, LogoutOutlined, SettingOutlined, SolutionOutlined} from '@ant-design/icons';
 import '../i18n/config';
-import { useTranslation } from 'react-i18next';
-import { FlagIcon } from 'react-flag-kit';
+import {useTranslation} from 'react-i18next';
+import {FlagIcon} from 'react-flag-kit';
 import {useAuth} from "../hook/useAuth";
 
 const { Content, Header, Sider } = Layout;
@@ -13,46 +13,47 @@ const { Content, Header, Sider } = Layout;
 const PageLayout = () => {
   const {signout} = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const { t } = useTranslation();
 
   return (
     <Layout>
       <Header className='header'>
         <div className='logo' />
-        <Menu theme='dark' mode='horizontal' defaultSelectedKeys={['portal']}>
-          <Menu.Item key='portal'>
+        <Menu theme='dark' mode='horizontal' defaultSelectedKeys={['/']} selectedKeys={[location.pathname]}>
+          <Menu.Item key='/'>
             <NavLink to={config.PATH_ROOT + '/'}>
               <SolutionOutlined />
               <span>{t('Portal')}</span>
             </NavLink>
           </Menu.Item>
-          <Menu.Item key='admin'>
+          <Menu.Item key='/admin'>
             <NavLink to={config.PATH_ROOT + '/admin'}>
               <SettingOutlined />
               <span>{t('Admin')}</span>
             </NavLink>
           </Menu.Item>
-          <Menu.Item key='teams'>
+          <Menu.Item key='/admin/teams'>
             <NavLink to={config.PATH_ROOT + '/admin/teams'}>
               <SettingOutlined />
               <span>{t('Teams')}</span>
             </NavLink>
           </Menu.Item>
-          <Menu.Item key='users'>
+          <Menu.Item key='/admin/users'>
             <NavLink to={config.PATH_ROOT + '/admin/users'}>
               <SettingOutlined />
               <span>{t('Users')}</span>
             </NavLink>
           </Menu.Item>
           <Menu.SubMenu key="SubMenu" title="Latviešu" icon={<FlagIcon code="LV" size={16} />}>
-            <Menu.Item key="two" icon={<FlagIcon code="US" size={16} />}>
+            <Menu.Item key="lang_us" icon={<FlagIcon code="US" size={16} />}>
               English
             </Menu.Item>
-            <Menu.Item key="three" icon={<FlagIcon code="LV" size={16} />}>
+            <Menu.Item key="lang_lv" icon={<FlagIcon code="LV" size={16} />}>
               Latviešu
             </Menu.Item>
           </Menu.SubMenu>
-          <Menu.Item key='login'>
+          <Menu.Item key='/login'>
             <NavLink to={config.PATH_ROOT + '/login'}>
               <LoginOutlined />
               <span>{t('Login')}</span>
