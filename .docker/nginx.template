@@ -45,7 +45,7 @@ http {
     gzip_comp_level     9;
 
     server {
-        listen 80 default_server;
+        listen 8080 default_server;
         charset utf-8;
         root   /usr/share/nginx/html;
         server_tokens off;
