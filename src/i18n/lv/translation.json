@@ -6,7 +6,6 @@
   "Username": "Lietotājvārds",
   "Error occurred": "Notika kļūda",
   "Unable to login": "Nesanāca ieiet",
-  "Test result summary": "Testu rezultātu apkope",
   "Portal": "Portāls",
   "Logout": "Izeja",
   "Login": "Ieeja",
@@ -14,5 +13,6 @@
   "Teams": "Komandas",
   "Admin": "Administrācija",
   "Home page": "Mājaslapa",
-  "Notifications": "Paziņojumi"
+  "Notifications": "Paziņojumi",
+  "Chat": "Čats"
 }

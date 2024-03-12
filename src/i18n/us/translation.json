@@ -6,7 +6,6 @@
   "Username": "Username",
   "Error occurred": "Error occurred",
   "Unable to login": "Unable to login",
-  "Test result summary": "Test result summary",
   "Portal": "Portal",
   "Logout": "Logout",
   "Login": "Login",
@@ -14,5 +13,6 @@
   "Teams": "Teams",
   "Admin": "Admin",
   "Home page": "Home page",
-  "Notifications": "Notifications"
+  "Notifications": "Notifications",
+  "Chat": "Chat"
 }

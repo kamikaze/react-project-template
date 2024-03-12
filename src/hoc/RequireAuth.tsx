@@ -1,4 +1,4 @@
-import {useLocation, Navigate} from 'react-router-dom';
+import {Navigate, useLocation} from 'react-router-dom';
 import {useAuth} from "../hook/useAuth";
 
 interface Props {
@@ -10,7 +10,7 @@ const RequireAuth = ({children}: Props) => {
   const {user} = useAuth();
 
   if (!user) {
-    return <Navigate to={'/login'} state={{from: location}} />
+    return <Navigate to={'/login'} state={{from: location}}/>
   }
 
   return children;

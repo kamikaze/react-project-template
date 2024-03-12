@@ -58,7 +58,7 @@ const LoginPage = () => {
 
   return (
     <Layout>
-      <Layout style={{padding: '0 24px 24px'}}>
+      <Layout style={{padding: '0 24px 24px', background: '#FCFCFC'}}>
         <Content
           className='site-layout-background'
           style={{

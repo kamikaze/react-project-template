@@ -1,7 +1,7 @@
 import {createContext, useState} from "react";
 
 type AuthContextType = {
-  user: string|null;
+  user: string | null;
   signin: (newUser: string, cb: CallableFunction) => void;
   signout: (cb: CallableFunction) => void;
 }
@@ -12,7 +12,7 @@ interface Props {
 }
 
 export const AuthProvider = ({children}: Props) => {
-  const [user, setUser] = useState<string|null>(null);
+  const [user, setUser] = useState<string | null>(null);
   const signin = (newUser: string, cb: CallableFunction) => {
     setUser(newUser);
     cb();

@@ -1,5 +1,6 @@
 const local = {
-  API_BASE_URL: 'http://localhost:8080/api/v1'
+  API_BASE_URL: 'http://localhost:8080/api/v1',
+  WS_URL: 'ws://localhost:8080/api/v1/ws'
 };
 
 const dev = {
@@ -7,7 +8,8 @@ const dev = {
 };
 
 const prod = {
-  API_BASE_URL: '/api/v1'
+  API_BASE_URL: '/api/v1',
+  WS_URL: 'ws://example.com/api/v1/ws'
 };
 
 const envVariables = process.env.REACT_APP_STAGE === 'prod' ? prod : (

@@ -5,39 +5,41 @@ import Icon, {AuditOutlined} from '@ant-design/icons';
 import '../i18n/config';
 import {useTranslation} from 'react-i18next';
 import {MainMenu} from "./MainMenu";
+import styles from './PageLayout.module.scss'
 
-const { Content, Header, Sider } = Layout;
+const {Content, Header, Sider} = Layout;
 
 const PageLayout = () => {
-  const { t } = useTranslation();
+  const {t} = useTranslation();
 
   return (
     <Layout>
       <Header className='header'>
-        <div className='logo' />
-        <MainMenu />
+        <div className='logo'/>
+        <MainMenu/>
       </Header>
-      <Layout>
+      <Layout
+        className={styles.pageWrapper}>
         <Sider width={200} className='site-layout-background' collapsible={true} defaultCollapsed={true}
                collapsedWidth={0}>
           <Menu
             mode='inline'
-            defaultSelectedKeys={['/portal/test-result-summary']}
+            defaultSelectedKeys={['/portal/chat']}
             defaultOpenKeys={['sub1']}
-            style={{ height: '100%', borderRight: 0 }}
+            style={{height: '100%', borderRight: 0}}
           >
-            <Menu.Item icon={<AuditOutlined />} key='/portal/test-result-summary'>
-              <NavLink to='/portal/test-result-summary'>
-                <Icon type='home' />
-                <span>{t('Test result summary')}</span>
+            <Menu.Item icon={<AuditOutlined/>} key='/portal/chat'>
+              <NavLink to='/portal/chat'>
+                <Icon type='home'/>
+                <span>{t('Chat')}</span>
               </NavLink>
             </Menu.Item>
           </Menu>
         </Sider>
-        <Layout style={{ padding: '0 24px 24px' }}>
-          <Breadcrumb style={{ margin: '16px 0' }}>
+        <Layout className={styles.contentWrapper}>
+          <Breadcrumb style={{margin: '16px 0'}}>
             <Breadcrumb.Item>{t('Portal')}</Breadcrumb.Item>
-            <Breadcrumb.Item>{t('Test result summary')}</Breadcrumb.Item>
+            <Breadcrumb.Item>{t('Chat')}</Breadcrumb.Item>
           </Breadcrumb>
           <Content
             className='site-layout-background'
@@ -47,7 +49,7 @@ const PageLayout = () => {
               minHeight: 280
             }}
           >
-            <Outlet />
+            <Outlet/>
           </Content>
         </Layout>
       </Layout>
