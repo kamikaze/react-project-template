@@ -4,7 +4,8 @@ const local = {
 };
 
 const dev = {
-  API_BASE_URL: '/api/v1'
+  API_BASE_URL: '/api/v1',
+  WS_URL: 'ws://dev.example.com/api/v1/ws'
 };
 
 const prod = {

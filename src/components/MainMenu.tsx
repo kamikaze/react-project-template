@@ -4,6 +4,7 @@ import config from "../config";
 import {
   AlignCenterOutlined,
   BulbOutlined,
+  HomeOutlined,
   LoginOutlined,
   LogoutOutlined,
   SettingOutlined,
@@ -32,6 +33,14 @@ const MainMenu = () => {
     <Menu theme='dark' mode='horizontal' defaultSelectedKeys={['/']} selectedKeys={[location.pathname]}>
       {user &&
         <Menu.Item key='/'>
+          <NavLink to={config.PATH_ROOT}>
+            <HomeOutlined/>
+            <span>{t('Home page')}</span>
+          </NavLink>
+        </Menu.Item>
+      }
+      {user &&
+        <Menu.Item key='/chat'>
           <NavLink to={config.PATH_ROOT + '/chat'}>
             <AlignCenterOutlined/>
             <span>{t('Chat')}</span>
