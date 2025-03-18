@@ -1,4 +1,4 @@
-import {createContext, useState} from "react";
+import React, {createContext, useState} from "react";
 
 type AuthContextType = {
   user: string | null;
@@ -8,7 +8,7 @@ type AuthContextType = {
 export const AuthContext = createContext<AuthContextType>({} as AuthContextType);
 
 interface Props {
-  children: JSX.Element
+  children: React.JSX.Element
 }
 
 export const AuthProvider = ({children}: Props) => {

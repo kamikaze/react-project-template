@@ -70,7 +70,7 @@ const MainMenu = () => {
           </Popover>
         </Menu.Item>
       }
-      <Menu.SubMenu key="LangSubMenu">
+      <Menu.SubMenu key="LangSubMenu" title={language}>
         <Menu.Item key="us" onClick={onLangClick}>
           English
         </Menu.Item>
