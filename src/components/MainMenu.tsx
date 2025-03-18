@@ -11,7 +11,6 @@ import {
   TeamOutlined,
   UserOutlined
 } from "@ant-design/icons";
-import {FlagIcon, FlagIconCode} from "react-flag-kit";
 import React, {useState} from "react";
 import {useAuth} from "../hook/useAuth";
 import {useTranslation} from "react-i18next";
@@ -20,7 +19,7 @@ const MainMenu = () => {
   const {user, signout} = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const [language, setLanguage] = useState<FlagIconCode>('US');
+  const [language, setLanguage] = useState<string>('US');
   const {t, i18n} = useTranslation();
   const rightAlignedMenuItem = {marginLeft: 'auto'};
 
@@ -71,11 +70,11 @@ const MainMenu = () => {
           </Popover>
         </Menu.Item>
       }
-      <Menu.SubMenu key="LangSubMenu" icon={<FlagIcon code={language} size={16}/>}>
-        <Menu.Item key="us" icon={<FlagIcon code="US" size={16}/>} onClick={onLangClick}>
+      <Menu.SubMenu key="LangSubMenu">
+        <Menu.Item key="us" onClick={onLangClick}>
           English
         </Menu.Item>
-        <Menu.Item key="lv" icon={<FlagIcon code="LV" size={16}/>} onClick={onLangClick}>
+        <Menu.Item key="lv" onClick={onLangClick}>
           Latviešu
         </Menu.Item>
       </Menu.SubMenu>
