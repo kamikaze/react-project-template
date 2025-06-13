@@ -1,4 +1,4 @@
-import { createContext, ReactNode, useEffect, useState } from 'react';
+import {createContext, type ReactNode, useEffect, useState} from 'react';
 import config from '../config';
 
 interface AuthContextType {
@@ -17,7 +17,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   // Fetch user on refresh
   useEffect(() => {
-    fetch(config.API_BASE_URL + '/users/me', { credentials: 'include' })
+    fetch(`${config.API_BASE_URL}/users/me`, { credentials: 'include' })
       .then((response) => response.ok ? response.json() : null)
       .then((data) => {
         setUser(data?.email ?? null);
@@ -33,7 +33,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   let signout = (callback: VoidFunction) => {
-    fetch('/users/logout', {
+    fetch(`${config.API_BASE_URL}/auth/logout`, {
       method: 'POST',
       credentials: 'include',
     }).finally(() => {

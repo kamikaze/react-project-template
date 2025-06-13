@@ -1,6 +1,5 @@
 import {useLocation, useNavigate} from "react-router-dom";
 import {Button, Form, Input, Layout, message} from 'antd';
-import React from 'react';
 import {useTranslation} from 'react-i18next';
 import config from '../config';
 import {LoginOutlined} from '@ant-design/icons';
@@ -15,6 +14,11 @@ const tailLayout = {
   wrapperCol: {offset: 8, span: 16}
 };
 
+type FieldType = {
+  username?: string;
+  password?: string;
+};
+
 const LoginPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -23,9 +27,9 @@ const LoginPage = () => {
   const fromPage = location.state?.from?.pathname || '/';
 
   const onFinish = async (values: any) => {
-    signin(values.username, () => navigate(fromPage, {replace: true}));
-
-    return
+    // signin(values.username, () => navigate(fromPage, {replace: true}));
+    //
+    // return
 
     let body = new URLSearchParams();
     body.set('username', values.username);
@@ -58,7 +62,7 @@ const LoginPage = () => {
 
   return (
     <Layout>
-      <Layout style={{padding: '0 24px 24px', background: '#FCFCFC'}}>
+      <Layout style={{padding: '0 24px 24px'}}>
         <Content
           className='site-layout-background'
           style={{
@@ -74,7 +78,7 @@ const LoginPage = () => {
             onFinish={onFinish}
             onFinishFailed={onFinishFailed}
           >
-            <Form.Item
+            <Form.Item<FieldType>
               label={t('Username')}
               name='username'
               rules={[{required: true, message: t('Please input your username!')}]}
@@ -82,7 +86,7 @@ const LoginPage = () => {
               <Input/>
             </Form.Item>
 
-            <Form.Item
+            <Form.Item<FieldType>
               label={t('Password')}
               name='password'
               rules={[{required: true, message: t('Please input your password!')}]}
@@ -90,7 +94,7 @@ const LoginPage = () => {
               <Input.Password/>
             </Form.Item>
 
-            <Form.Item {...tailLayout}>
+            <Form.Item<FieldType> {...tailLayout}>
               <Button type='primary' htmlType='submit'>
                 <LoginOutlined/>
                 {t('Log in')}

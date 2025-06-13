@@ -2,7 +2,6 @@ import {Menu, Popover} from "antd";
 import {NavLink, useLocation, useNavigate} from "react-router-dom";
 import config from "../config";
 import {
-  AlignCenterOutlined,
   BulbOutlined,
   HomeOutlined,
   LoginOutlined,
@@ -19,33 +18,24 @@ const MainMenu = () => {
   const {user, signout} = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const [language, setLanguage] = useState<string>('US');
+  const [language, setLanguage] = useState<string>('LV');
   const {t, i18n} = useTranslation();
   const rightAlignedMenuItem = {marginLeft: 'auto'};
 
   const onLangClick = (info: any) => {
     setLanguage(info.key.toUpperCase());
-    i18n.changeLanguage(info.key);
+    i18n.changeLanguage(info.key).then(r => {
+    });
   }
 
   return (
     <Menu theme='dark' mode='horizontal' defaultSelectedKeys={['/']} selectedKeys={[location.pathname]}>
-      {user &&
-        <Menu.Item key='/'>
-          <NavLink to={config.PATH_ROOT}>
-            <HomeOutlined/>
-            <span>{t('Home page')}</span>
-          </NavLink>
-        </Menu.Item>
-      }
-      {user &&
-        <Menu.Item key='/chat'>
-          <NavLink to={config.PATH_ROOT + '/chat'}>
-            <AlignCenterOutlined/>
-            <span>{t('Chat')}</span>
-          </NavLink>
-        </Menu.Item>
-      }
+      <Menu.Item key='/'>
+        <NavLink to={config.PATH_ROOT + '/'}>
+          <HomeOutlined/>
+          <span>{t('Main')}</span>
+        </NavLink>
+      </Menu.Item>
       <Menu.Item key="spacer" style={rightAlignedMenuItem}></Menu.Item>
       {user &&
         <Menu.SubMenu key="AdminSubMenu" title={t('Admin')} icon={<SettingOutlined/>}>

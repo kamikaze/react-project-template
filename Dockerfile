@@ -1,23 +1,26 @@
-FROM node:23.8-slim AS builder
+FROM node:24-slim AS build-image
+
+LABEL Name=frontend
+LABEL Maintainer=kamikaze.is.waiting.you@gmail.com
 
 ARG ENVIRONMENT
 
-WORKDIR /tmp/build
+WORKDIR /app
 
-COPY ./ /tmp/build
+ENV PNPM_HOME="/pnpm"
+ENV PATH="$PNPM_HOME:$PATH"
+RUN corepack enable
 
-RUN (cd /tmp/build && \
-    npm install && \
-    REACT_APP_STAGE="${ENVIRONMENT}" npm run build)
+COPY ./ /app
 
+RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --frozen-lockfile
+RUN VITE_STAGE="${ENVIRONMENT}" PUBLIC_URL="/" pnpm run build
 
-FROM nginx:stable-alpine
-LABEL Name=react-project-template
-LABEL Maintainer=kamikaze.is.waiting.you@gmail.com
+FROM nginx:stable-alpine AS run-image
 
 WORKDIR /usr/share/nginx/html/
 
-COPY --from=builder /tmp/build/build/ ./
+COPY --from=build-image /app/dist/ /usr/share/nginx/html/
 COPY .docker/nginx.template /etc/nginx/nginx.template
 COPY .docker/docker-entrypoint.sh /
 

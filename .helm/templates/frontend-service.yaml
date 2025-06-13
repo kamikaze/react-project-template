@@ -13,4 +13,3 @@ spec:
       name: http
   selector:
     {{- include "frontend.selectorLabels" . | nindent 4 }}
-    app: frontend

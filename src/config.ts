@@ -13,9 +13,8 @@ const prod = {
   WS_URL: 'ws://example.com/api/v1/ws'
 };
 
-const envVariables = process.env.REACT_APP_STAGE === 'prod' ? prod : (
-  process.env.REACT_APP_STAGE === 'dev' ? dev : local
-);
+const stage = import.meta.env.VITE_STAGE || 'local';
+const envVariables = stage === 'prod' ? prod : stage === 'dev' ? dev : local;
 
 const config = {
   MAX_ATTACHMENT_SIZE: 5000000,

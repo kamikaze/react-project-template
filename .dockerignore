@@ -1,3 +1,13 @@
-.vscode
-node_modules
-.git
+*
+!.docker/
+!public/
+!src/
+!eslint.config.js
+!index.html
+!package.json
+!pnpm-lock.yaml
+!pnpm-workspace.yaml
+!tsconfig.app.json
+!tsconfig.json
+!tsconfig.node.json
+!vite.config.ts
