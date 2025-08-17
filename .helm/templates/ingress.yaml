@@ -14,3 +14,22 @@ spec:
     services:
     - name: frontend
       port: {{ .Values.frontend.service.port }}
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: {{ include "app.name" . }}
+spec:
+  parentRefs:
+    - name: cilium-gateway
+      namespace: cilium
+  hostnames:
+    - "{{ .Values.frontend.ingress.host }}"
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: "{{ .Values.frontend.ingress.pathPrefix }}"
+      backendRefs:
+        - name: {{ include "app.name" . }}
+          port: {{ .Values.backend.service.port }}
