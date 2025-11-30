@@ -1,9 +1,10 @@
+// Frontend: src/pages/LoginPage.tsx (updated: form for legacy, button for OIDC; no auto-trigger)
+import React from 'react';
 import {useLocation, useNavigate} from "react-router-dom";
 import {Button, Form, Input, Layout, message} from 'antd';
 import {useTranslation} from 'react-i18next';
-import config from '../config';
 import {LoginOutlined} from '@ant-design/icons';
-import {useAuth} from "../hook/useAuth";
+import {useAuth} from "../hook/useAuth";  // Hook for context
 
 const {Content} = Layout;
 const layout = {
@@ -22,43 +23,34 @@ type FieldType = {
 const LoginPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const {signin} = useAuth();
+  const { signin, signinOIDC, authMode } = useAuth();
   const {t} = useTranslation();
   const fromPage = location.state?.from?.pathname || '/';
 
-  const onFinish = async (values: any) => {
-    // signin(values.username, () => navigate(fromPage, {replace: true}));
-    //
-    // return
-
-    let body = new URLSearchParams();
-    body.set('username', values.username);
-    body.set('password', values.password);
-
-    const response = await fetch(config.API_BASE_URL + '/auth/login', {
-      method: 'POST',
-      credentials: 'include',
-      headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-      body: body
+  const onFinish = async (values: FieldType) => {
+    // Legacy signin
+    signin(values.username!, () => {
+      message.success('Login succeeded');
+      navigate(fromPage, {replace: true});
     });
-
-    if (response.ok) {
-      //TOOO
-      //props.setIsAuthenticated(true);
-      signin(values.username, () => navigate(fromPage, {replace: true}));
-      message.info('Login succeeded');
-    } else {
-      if (response.status === 400) {
-        message.error(t('Unable to login'));
-      } else {
-        message.error(t('Error occurred'));
-      }
-    }
   };
 
   const onFinishFailed = (errorInfo: any) => {
     console.log('Failed:', errorInfo);
   };
+
+  const handleOIDCLogin = () => {
+    signinOIDC(() => {
+      message.success('Login succeeded');
+      navigate(fromPage, {replace: true});
+    });
+  };
+
+  // If already authenticated (e.g., after redirect), go home
+  if (authMode && fromPage !== '/login') {
+    navigate(fromPage || '/', {replace: true});
+    return null;
+  }
 
   return (
     <Layout>
@@ -77,6 +69,7 @@ const LoginPage = () => {
             initialValues={{remember: true}}
             onFinish={onFinish}
             onFinishFailed={onFinishFailed}
+            style={{ maxWidth: 600, margin: '0 auto' }}
           >
             <Form.Item<FieldType>
               label={t('Username')}
@@ -94,10 +87,14 @@ const LoginPage = () => {
               <Input.Password/>
             </Form.Item>
 
-            <Form.Item<FieldType> {...tailLayout}>
-              <Button type='primary' htmlType='submit'>
+            <Form.Item {...tailLayout}>
+              <Button type='primary' htmlType='submit' style={{ marginRight: 8 }}>
                 <LoginOutlined/>
                 {t('Log in')}
+              </Button>
+              <Button onClick={handleOIDCLogin} type='default'>
+                <LoginOutlined/>
+                {t('Log in with')}
               </Button>
             </Form.Item>
           </Form>

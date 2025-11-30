@@ -13,4 +13,12 @@ const authLoader = (loader: Function) => async (args: any) => {
   }
 };
 
+export const loginRequest = {
+  scopes: ['openid', 'profile', 'email'],
+};
+
+export const authenticatedUserProfileRequest = {
+  scopes: ['openid', 'profile', 'email'],
+};
+
 export { authLoader };
