@@ -19,7 +19,7 @@ interface AuthContextType {
   isAuthenticated: boolean;
   authMode: AuthMode;
   signin: (user: string, callback: VoidFunction) => void;  // Legacy session signin
-  signinOIDC: (callback?: VoidFunction) => void;  // OIDC signin
+  signinOIDC: (callback?: VoidFunction) => Promise<void>;  // OIDC signin
   signout: (callback?: VoidFunction) => void;
   getAccessToken: () => Promise<string | null>;  // For manual use if needed
 }
@@ -49,6 +49,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           setLoading(false);
           return;
         }
+        // Explicitly log non-success responses to aid debugging (e.g., 401)
+        console.warn(`/users/me returned non-OK status: ${response.status}`);
       } catch (err) {
         console.log('No active session, falling back to OIDC');
       }
@@ -122,12 +124,32 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       if (res.ok) {
         const data = await res.json();
         setUser(data.email);
+        // If we have a stored post-login route, navigate to it (works even outside /login)
+        try {
+          const target = sessionStorage.getItem('postLoginRedirect');
+          if (target) {
+            sessionStorage.removeItem('postLoginRedirect');
+            if (window.location.pathname !== target) {
+              window.location.replace(target);
+            }
+          }
+        } catch {}
       } else {
         setUser(accounts[0]?.username || null);
+        // Attempt same redirect even if /users/me not available yet
+        try {
+          const target = sessionStorage.getItem('postLoginRedirect');
+          if (target) {
+            sessionStorage.removeItem('postLoginRedirect');
+            if (window.location.pathname !== target) {
+              window.location.replace(target);
+            }
+          }
+        } catch {}
       }
     } catch (error) {
       if (error instanceof InteractionRequiredAuthError) {
-        signinOIDC();
+        await signinOIDC();
       } else {
         console.error('Auth error:', error);
         setUser(null);
@@ -164,16 +186,16 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  const signinOIDC = (callback?: VoidFunction) => {
+  const signinOIDC = async (callback?: VoidFunction): Promise<void> => {
     if (inProgress === InteractionStatus.None && authMode === 'oidc') {
       // MSAL loginRedirect does not support callback options; navigation occurs after redirect
-      instance.loginRedirect(loginRequest).catch(console.error);
+      return instance.loginRedirect(loginRequest)
+        .then(() => {
+          if (callback) { try { callback(); } catch {} }
+        });
     }
-    // Any post-login navigation should happen after redirect handling (handled elsewhere)
-    if (callback) {
-      // Best-effort: invoke immediately to keep existing call sites harmless
-      try { callback(); } catch {}
-    }
+    // If we cannot initiate due to inProgress or mode, return a rejected promise to allow error handling
+    return Promise.reject(new Error('Authentication is currently in progress or OIDC is not initialized'));
   };
 
   const signout = async (callback?: VoidFunction) => {
@@ -218,9 +240,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   // Auto-fetch OIDC profile if accounts appear after redirect
   useEffect(() => {
     if (authMode === 'oidc' && accounts.length > 0 && !user) {
-      fetchUserProfile();
+      fetchUserProfile().then(r => {console.log('fetchUserProfile().then')});
     }
   }, [accounts.length, authMode]);
 
-  return <AuthContext.Provider value={value}>{!loading && children}</AuthContext.Provider>;
+  // Always render children; gating is handled by RequireAuth (shows spinner while loading)
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };

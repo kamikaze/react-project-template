@@ -1,5 +1,5 @@
 // Frontend: src/pages/LoginPage.tsx (updated: form for legacy, button for OIDC; no auto-trigger)
-import React from 'react';
+import React, { useEffect } from 'react';
 import {useLocation, useNavigate} from "react-router-dom";
 import {Button, Form, Input, Layout, message} from 'antd';
 import {useTranslation} from 'react-i18next';
@@ -23,9 +23,24 @@ type FieldType = {
 const LoginPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { signin, signinOIDC, authMode } = useAuth();
+  const { signin, signinOIDC, authMode, user } = useAuth() as any;
   const {t} = useTranslation();
-  const fromPage = location.state?.from?.pathname || '/';
+  // Determine where to return after login: router state or query param (?fromPage=)
+  const stateFrom = location.state?.from?.pathname as string | undefined;
+  const qs = new URLSearchParams(location.search);
+  const qsFromRaw = qs.get('fromPage') || undefined;
+  let qsFrom: string | undefined;
+  if (qsFromRaw) {
+    try {
+      const decoded = decodeURIComponent(qsFromRaw);
+      const url = new URL(decoded, window.location.origin);
+      qsFrom = url.pathname + url.search + url.hash;
+    } catch {
+      // Fallback: if it looks like a relative path, accept it
+      qsFrom = qsFromRaw.startsWith('/') ? qsFromRaw : undefined;
+    }
+  }
+  const fromPage = stateFrom || qsFrom || '/';
 
   const onFinish = async (values: FieldType) => {
     // Legacy signin
@@ -40,17 +55,37 @@ const LoginPage = () => {
   };
 
   const handleOIDCLogin = () => {
-    signinOIDC(() => {
-      message.success('Login succeeded');
-      navigate(fromPage, {replace: true});
-    });
+    // Preserve intended route across redirects
+    if (fromPage) sessionStorage.setItem('postLoginRedirect', fromPage);
+    Promise.resolve(signinOIDC())
+      .catch((e: any) => message.error(e?.message || 'Authentication failed'));
   };
 
-  // If already authenticated (e.g., after redirect), go home
-  if (authMode && fromPage !== '/login') {
-    navigate(fromPage || '/', {replace: true});
-    return null;
-  }
+  // If user already authenticated (e.g., after redirect), go to intended page
+  useEffect(() => {
+    if (user) {
+      const stored = sessionStorage.getItem('postLoginRedirect');
+      const target = stored || fromPage || '/';
+      if (stored) sessionStorage.removeItem('postLoginRedirect');
+      if (location.pathname !== target) {
+        navigate(target, { replace: true });
+      }
+    }
+  }, [user]);
+
+  // Show error if MSAL/IdP redirected back with an error
+  useEffect(() => {
+    try {
+      const qs = new URLSearchParams(window.location.search);
+      const hash = window.location.hash.startsWith('#') ? window.location.hash.slice(1) : window.location.hash;
+      const hs = new URLSearchParams(hash);
+      const err = qs.get('error') || hs.get('error');
+      const desc = qs.get('error_description') || hs.get('error_description');
+      if (err || desc) {
+        message.error(decodeURIComponent(desc || err || 'Authentication failed'));
+      }
+    } catch {}
+  }, []);
 
   return (
     <Layout>
