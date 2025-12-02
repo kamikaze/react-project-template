@@ -1,4 +1,4 @@
-import React, {createContext, type PropsWithChildren, type ReactNode, useEffect, useState} from 'react';
+import React, {createContext, type PropsWithChildren, useEffect, useState} from 'react';
 import { useMsal } from '@azure/msal-react';
 import { InteractionStatus, InteractionRequiredAuthError } from '@azure/msal-browser';
 import config from '../config';
@@ -166,7 +166,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const signinOIDC = (callback?: VoidFunction) => {
     if (inProgress === InteractionStatus.None && authMode === 'oidc') {
-      instance.loginRedirect({ ...loginRequest, ...(callback && { onSuccess: callback }) }).catch(console.error);
+      // MSAL loginRedirect does not support callback options; navigation occurs after redirect
+      instance.loginRedirect(loginRequest).catch(console.error);
+    }
+    // Any post-login navigation should happen after redirect handling (handled elsewhere)
+    if (callback) {
+      // Best-effort: invoke immediately to keep existing call sites harmless
+      try { callback(); } catch {}
     }
   };
 

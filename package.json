@@ -5,7 +5,13 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:local": "VITE_STAGE=local vite",
+    "dev:dev": "VITE_STAGE=dev vite",
+    "dev:prod": "VITE_STAGE=prod vite",
     "build": "tsc -b && vite build",
+    "build:local": "VITE_STAGE=local tsc -b && VITE_STAGE=local vite build",
+    "build:dev": "VITE_STAGE=dev tsc -b && VITE_STAGE=dev vite build",
+    "build:prod": "VITE_STAGE=prod tsc -b && VITE_STAGE=prod vite build",
     "lint": "eslint .",
     "preview": "vite preview"
   },

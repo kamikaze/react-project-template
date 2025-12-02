@@ -1,5 +1,54 @@
 # React + TypeScript + Vite
 
+## Runtime stages and running in "local" mode
+
+The app reads a simple stage flag to choose API/WebSocket endpoints. See `src/config.ts`:
+
+- local (default):
+  - API_BASE_URL: `http://localhost:8080/api/v1`
+  - WS_URL: `ws://localhost:8080/api/v1/ws`
+- dev:
+  - API_BASE_URL: `/api/v1`
+  - WS_URL: `ws://dev.example.com/api/v1/ws`
+- prod:
+  - API_BASE_URL: `/api/v1`
+  - WS_URL: `ws://example.com/api/v1/ws`
+
+The stage is selected by the Vite env variable `VITE_STAGE`. If it is not set, `local` is used by default.
+
+### Run locally (backend at http://localhost:8080)
+
+Use one of the following:
+
+- pnpm: `pnpm dev:local`
+- npm: `npm run dev:local`
+- yarn: `yarn dev:local`
+
+Alternatively, you can run the default dev server (which also uses `local` because `VITE_STAGE` is unset):
+
+- pnpm: `pnpm dev`
+- npm: `npm run dev`
+- yarn: `yarn dev`
+
+### Build for a stage
+
+- Local: `pnpm build:local` (or `npm run build:local`)
+- Dev: `pnpm build:dev`
+- Prod: `pnpm build:prod`
+
+These scripts simply export `VITE_STAGE` for the build so `src/config.ts` can pick the correct endpoints at compile time.
+
+### Notes about authentication (OIDC)
+
+- When running locally, the frontend expects a backend available at `http://localhost:8080` that provides:
+  - Session endpoints: `/api/v1/auth/login`, `/api/v1/auth/logout`, `/api/v1/users/me`
+  - OIDC config endpoint: `/api/v1/config` returning `oidc_client_id` and `oidc_authority_url`
+- Click the "Log in with" button on the login page to start the OIDC redirect flow.
+
+---
+
+The sections below are the default Vite template notes.
+
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
 
 Currently, two official plugins are available:
