@@ -1,9 +1,15 @@
-// Frontend: src/hoc/AuthProvider.tsx (updated to support both modes: session first, then OIDC fallback)
 import React, {createContext, type PropsWithChildren, type ReactNode, useEffect, useState} from 'react';
 import { useMsal } from '@azure/msal-react';
 import { InteractionStatus, InteractionRequiredAuthError } from '@azure/msal-browser';
 import config from '../config';
 import { loginRequest, authenticatedUserProfileRequest } from '../auth';
+
+// Augment Window type to include our private _originalFetch reference used for patching
+declare global {
+  interface Window {
+    _originalFetch?: typeof fetch;
+  }
+}
 
 type AuthMode = 'session' | 'oidc' | null;
 
@@ -85,16 +91,30 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       if (!window._originalFetch) {
         window._originalFetch = window.fetch;
       }
+
+      const hasAuthHeader = (headersInit?: HeadersInit): boolean => {
+        if (!headersInit) return false;
+        if (headersInit instanceof Headers) {
+          return headersInit.has('Authorization') || headersInit.has('authorization');
+        }
+        if (Array.isArray(headersInit)) {
+          return headersInit.some(([k]) => k.toLowerCase() === 'authorization');
+        }
+        // Record<string, string>
+        return Object.keys(headersInit).some(k => k.toLowerCase() === 'authorization');
+      };
+
       window.fetch = async (...args: Parameters<typeof fetch>) => {
-        const [url, options = {}] = args;
-        if (typeof url === 'string' && url.startsWith(config.API_BASE_URL) && !options.headers?.Authorization) {
+        const [url, options = {} as RequestInit] = args;
+        if (typeof url === 'string' && url.startsWith(config.API_BASE_URL) && !hasAuthHeader(options.headers)) {
           const headers = new Headers(options.headers);
           headers.set('Authorization', `Bearer ${token}`);
-          options.headers = headers;
-          // Also include credentials for mixed mode
-          options.credentials = 'include';
+          const newOptions: RequestInit = { ...options, headers, credentials: 'include' };
+          const originalFetch = window._originalFetch ?? window.fetch;
+          return originalFetch(url, newOptions);
         }
-        return window._originalFetch(...args);
+        const originalFetch = window._originalFetch ?? window.fetch;
+        return originalFetch(...args as [RequestInfo, RequestInit?]);
       };
 
       // Fetch /users/me with token (now patched)
