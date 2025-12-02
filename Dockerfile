@@ -1,4 +1,4 @@
-FROM node:24-slim AS build-image
+FROM node:25-slim AS build-image
 
 LABEL Name=frontend
 LABEL Maintainer=kamikaze.is.waiting.you@gmail.com
@@ -7,9 +7,10 @@ ARG ENVIRONMENT
 
 WORKDIR /app
 
-ENV PNPM_HOME="/pnpm"
-ENV PATH="$PNPM_HOME:$PATH"
-RUN corepack enable
+# Corepack is not available in Node.js 25.x images; install pnpm explicitly
+# and configure a dedicated store directory to leverage BuildKit cache mounts.
+ENV PNPM_STORE_DIR="/pnpm/store"
+RUN npm i -g pnpm@10
 
 COPY ./ /app
 
