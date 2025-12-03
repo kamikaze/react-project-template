@@ -19,7 +19,7 @@
     "@ant-design/icons": "^6.1.0",
     "@azure/msal-react": "^3.0.22",
     "@azure/msal-browser": "^4.26.2",
-    "antd": "^6.0.0",
+    "antd": "^6.0.1",
     "i18next": "^25.6.3",
     "i18next-http-backend": "^3.0.2",
     "moment": "^2.30.1",
