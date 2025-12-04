@@ -1,6 +1,6 @@
 const local = {
-  API_BASE_URL: 'http://localhost:8000/api/v1',
-  WS_URL: 'ws://localhost:8000/api/v1/ws'
+  API_BASE_URL: 'http://localhost:8000/api/jean/v1',
+  WS_URL: 'ws://localhost:8000/api/jean/v1/ws'
 };
 
 const dev = {

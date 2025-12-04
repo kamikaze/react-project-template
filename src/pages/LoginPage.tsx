@@ -5,6 +5,7 @@ import {Button, Form, Input, Layout, message} from 'antd';
 import {useTranslation} from 'react-i18next';
 import {LoginOutlined} from '@ant-design/icons';
 import {useAuth} from "../hook/useAuth";  // Hook for context
+import config from '../config';
 
 const {Content} = Layout;
 const layout = {
@@ -55,6 +56,20 @@ const LoginPage = () => {
   };
 
   const handleOIDCLogin = () => {
+    // Best-effort: print OIDC config to console when the button is clicked
+    console.info('[OIDC] Login button clicked. Fetching OIDC config...');
+    try {
+      // Non-blocking fetch; do not await before starting signin
+      fetch(`${config.API_BASE_URL}/config`)
+        .then(r => r.json())
+        .then((data) => {
+          const authority = data?.oidc_authority_url;
+          const client_id = data?.oidc_client_id;
+          const redirect_uri = data?.oidc_redirect_uri;
+          console.info('[OIDC] Config from /config', { authority, client_id, redirect_uri });
+        })
+        .catch(() => {/* ignore logging errors */});
+    } catch {}
     // Preserve intended route across redirects
     if (fromPage) sessionStorage.setItem('postLoginRedirect', fromPage);
     Promise.resolve(signinOIDC())
