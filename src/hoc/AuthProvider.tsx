@@ -1,10 +1,12 @@
-import React, {createContext, type PropsWithChildren, useEffect, useState} from 'react';
-import { useMsal } from '@azure/msal-react';
-import { InteractionStatus, InteractionRequiredAuthError } from '@azure/msal-browser';
+import React, { createContext, type PropsWithChildren, useEffect, useMemo, useRef, useState, useCallback } from 'react';
+import {AuthProvider as OidcProvider, type AuthProviderProps, useAuth as useOidc} from 'react-oidc-context';
+import { WebStorageStateStore } from 'oidc-client-ts';
 import config from '../config';
-import { loginRequest, authenticatedUserProfileRequest } from '../auth';
 
-// Augment Window type to include our private _originalFetch reference used for patching
+// ============================================================================
+// Type Definitions
+// ============================================================================
+
 declare global {
   interface Window {
     _originalFetch?: typeof fetch;
@@ -13,237 +15,493 @@ declare global {
 
 type AuthMode = 'session' | 'oidc' | null;
 
-interface AuthContextType {
+export interface AuthContextType {
   user: string | null;
   loading: boolean;
   isAuthenticated: boolean;
   authMode: AuthMode;
-  signin: (user: string, callback: VoidFunction) => void;  // Legacy session signin
-  signinOIDC: (callback?: VoidFunction) => Promise<void>;  // OIDC signin
-  signout: (callback?: VoidFunction) => void;
-  getAccessToken: () => Promise<string | null>;  // For manual use if needed
+  signin: (user: string, callback: VoidFunction) => Promise<void>;
+  signinOIDC: (callback?: VoidFunction) => Promise<void>;
+  signout: (callback?: VoidFunction) => Promise<void>;
+  getAccessToken: () => Promise<string | null>;
 }
 
-interface AuthProviderProps extends PropsWithChildren {
+interface OidcBridgeProps extends PropsWithChildren {
+  sessionUser: string | null;
+  setSessionUser: (user: string | null) => void;
+  setAuthMode: (mode: AuthMode) => void;
+  accessToken: string | null;
+  setAccessToken: (token: string | null) => void;
+  pendingOidcSignin: boolean;
+  setPendingOidcSignin: (pending: boolean) => void;
   children: React.ReactNode;
 }
 
-export const AuthContext = createContext<AuthContextType>(null!);
+// ============================================================================
+// Constants
+// ============================================================================
+
+const POST_LOGIN_REDIRECT_KEY = 'postLoginRedirect';
+
+// ============================================================================
+// Context
+// ============================================================================
+
+export const AuthContext = createContext<AuthContextType | null>(null);
+
+// ============================================================================
+// Utility Functions
+// ============================================================================
+
+const fetchOidcConfig = async (): Promise<AuthProviderProps | null> => {
+  try {
+    const response = await fetch(`${config.API_BASE_URL}/config`);
+
+    if (!response.ok) {
+      console.warn(`/config returned non-OK status: ${response.status}`);
+
+      return null;
+    }
+
+    const data = await response.json();
+
+    return {
+      authority: data.oidc_authority_url,
+      client_id: data.oidc_client_id,
+      redirect_uri: `${window.location.origin}/oidc/callback`,
+      // Keep minimal scope for SPA; include required API scopes; avoid offline_access in browser
+      scope: data.oidc_scope,
+      resource: data.oidc_audience,
+      // Prefer sessionStorage to limit token persistence in browser
+      userStore: new WebStorageStateStore({ store: window.sessionStorage }),
+      onSigninCallback: () => {
+        window.history.replaceState(
+          {},
+          document.title,
+          window.location.pathname
+        );
+      },
+      automaticSilentRenew: true,
+      monitorSession: true,
+    };
+  } catch (error) {
+    console.error('Failed to load OIDC config:', error);
+
+    return null;
+  }
+};
+
+const checkExistingSession = async (): Promise<string | null> => {
+  try {
+    const response = await fetch(`${config.API_BASE_URL}/users/me`, {
+      credentials: 'include',
+    });
+    if (!response.ok) {
+      console.warn(`/users/me returned non-OK status: ${response.status}`);
+      return null;
+    }
+    const data = await response.json();
+    return data.email;
+  } catch (error) {
+    console.log('No active session, falling back to OIDC');
+    return null;
+  }
+};
+
+const hasAuthorizationHeader = (headersInit?: HeadersInit): boolean => {
+  if (!headersInit) return false;
+
+  if (headersInit instanceof Headers) {
+    return headersInit.has('Authorization') || headersInit.has('authorization');
+  }
+
+  if (Array.isArray(headersInit)) {
+    return headersInit.some(([key]) => key.toLowerCase() === 'authorization');
+  }
+
+  return Object.keys(headersInit).some(
+    (key) => key.toLowerCase() === 'authorization'
+  );
+};
+
+const handlePostLoginRedirect = (): void => {
+  try {
+    const target = sessionStorage.getItem(POST_LOGIN_REDIRECT_KEY);
+    if (target) {
+      sessionStorage.removeItem(POST_LOGIN_REDIRECT_KEY);
+      if (window.location.pathname !== target) {
+        window.location.replace(target);
+      }
+    }
+  } catch (error) {
+    console.error('Failed to handle post-login redirect:', error);
+  }
+};
+
+// ============================================================================
+// Main Provider Component
+// ============================================================================
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [authMode, setAuthMode] = useState<AuthMode>(null);
   const [accessToken, setAccessToken] = useState<string | null>(null);
-  const { instance, accounts, inProgress } = useMsal();
+  const [oidcConfig, setOidcConfig] = useState<AuthProviderProps | null>(null);
+  const [pendingOidcSignin, setPendingOidcSignin] = useState(false);
 
-  // Step 1: Check for existing session (preserve legacy)
+  // ============================================================================
+  // Initial Authentication Check
+  // ============================================================================
+
   useEffect(() => {
-    const checkSession = async () => {
-      try {
-        const response = await fetch(`${config.API_BASE_URL}/users/me`, { credentials: 'include' });
-        if (response.ok) {
-          const data = await response.json();
-          setUser(data.email);
-          setAuthMode('session');
-          setLoading(false);
-          return;
-        }
-        // Explicitly log non-success responses to aid debugging (e.g., 401)
-        console.warn(`/users/me returned non-OK status: ${response.status}`);
-      } catch (err) {
-        console.log('No active session, falling back to OIDC');
+    let cancelled = false;
+
+    const initializeAuth = async () => {
+      // Load OIDC config first
+      const config = await fetchOidcConfig();
+      if (!cancelled && config) {
+        setOidcConfig(config);
       }
 
-      // Step 2: No session, init OIDC
-      try {
-        await fetch(`${config.API_BASE_URL}/config`)
-          .then(res => res.json())
-          .then((oidcConfig: any) => {
-            instance.getConfiguration().auth.clientId = oidcConfig.oidc_client_id;
-            instance.getConfiguration().auth.authority = oidcConfig.oidc_authority_url;
-            return instance.initialize();
-          });
-
-        setAuthMode('oidc');
-
-        if (accounts.length > 0) {
-          // Existing OIDC session
-          await fetchUserProfile();
-        } else if (inProgress === InteractionStatus.None) {
-          // No session, but don't auto-login here; let LoginPage handle
-          setLoading(false);
+      // Check for existing session
+      const sessionUser = await checkExistingSession();
+      if (!cancelled) {
+        if (sessionUser) {
+          setUser(sessionUser);
+          setAuthMode('session');
+        } else {
+          setAuthMode('oidc');
         }
-      } catch (err) {
-        console.error('OIDC init failed:', err);
         setLoading(false);
       }
     };
 
-    checkSession();
+    void initializeAuth();
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
-  const fetchUserProfile = async () => {
-    try {
-      const response = await instance.ssoSilent(authenticatedUserProfileRequest);
-      const token = response.accessToken;
-      setAccessToken(token);
+  // ============================================================================
+  // Authentication Methods
+  // ============================================================================
 
-      // Patch fetch for OIDC mode (centralized: adds bearer to API calls)
+  const signin = useCallback(
+    async (newUser: string, callback: VoidFunction): Promise<void> => {
+      try {
+        const body = new URLSearchParams({
+          username: newUser,
+          password: 'dummy', // Replace with actual password handling
+        });
+
+        const response = await fetch(`${config.API_BASE_URL}/auth/login`, {
+          method: 'POST',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body,
+        });
+
+        if (response.ok) {
+          const meResponse = await fetch(`${config.API_BASE_URL}/users/me`, {
+            credentials: 'include',
+          });
+          const data = await meResponse.json();
+          setUser(data.email);
+          setAuthMode('session');
+        } else {
+          throw new Error('Login failed');
+        }
+      } catch (error) {
+        console.error('Session signin failed:', error);
+        throw error;
+      } finally {
+        callback();
+      }
+    },
+    []
+  );
+
+  const signinOIDC = useCallback(async (): Promise<void> => {
+    try {
+      // If already in OIDC mode with config, just set pending flag
+      if (authMode === 'oidc' && oidcConfig) {
+        setPendingOidcSignin(true);
+        return;
+      }
+
+      // If config is loaded but not in OIDC mode, switch modes
+      if (oidcConfig) {
+        setAuthMode('oidc');
+        setPendingOidcSignin(true);
+        return;
+      }
+
+      // Fallback: load config if not present
+      const config = await fetchOidcConfig();
+      if (config) {
+        setOidcConfig(config);
+        setAuthMode('oidc');
+        setPendingOidcSignin(true);
+      } else {
+        throw new Error('Failed to load OIDC configuration');
+      }
+    } catch (error) {
+      console.error('Failed to initialize OIDC:', error);
+      throw error;
+    }
+  }, [authMode, oidcConfig]);
+
+  const signout = useCallback(
+    async (callback?: VoidFunction): Promise<void> => {
+      if (authMode === 'session') {
+        try {
+          await fetch(`${config.API_BASE_URL}/auth/logout`, {
+            method: 'POST',
+            credentials: 'include',
+          });
+        } catch (error) {
+          console.error('Logout request failed:', error);
+        }
+        setUser(null);
+        setAccessToken(null);
+        setAuthMode(null);
+      }
+      callback?.();
+    },
+    [authMode]
+  );
+
+  const getAccessToken = useCallback(async (): Promise<string | null> => {
+    return accessToken;
+  }, [accessToken]);
+
+  // ============================================================================
+  // Context Value
+  // ============================================================================
+
+  const baseValue = useMemo(
+    (): AuthContextType => ({
+      user,
+      loading,
+      isAuthenticated: !!user,
+      authMode,
+      signin,
+      signinOIDC,
+      signout,
+      getAccessToken,
+    }),
+    [user, loading, authMode, signin, signout, getAccessToken]
+  );
+
+  // ============================================================================
+  // Render Logic
+  // ============================================================================
+
+  // If not in OIDC mode or config not loaded, use base context
+  if (authMode !== 'oidc' || !oidcConfig) {
+    return (
+      <AuthContext.Provider value={baseValue}>{children}</AuthContext.Provider>
+    );
+  }
+
+  // OIDC provider configuration
+  const oidcProviderConfig = {
+    ...oidcConfig,
+    redirect_uri: `${window.location.origin}/oidc/callback`,
+    post_logout_redirect_uri: window.location.origin,
+    automaticSilentRenew: true,
+    onSigninCallback: () => {
+      // Clean up URL after successful login
+      window.history.replaceState(
+        {},
+        document.title,
+        window.location.pathname + window.location.search
+      );
+    },
+  } as AuthProviderProps;
+
+  return (
+    <OidcProvider {...oidcProviderConfig}>
+      <OidcBridge
+        sessionUser={user}
+        setSessionUser={setUser}
+        setAuthMode={setAuthMode}
+        accessToken={accessToken}
+        setAccessToken={setAccessToken}
+        pendingOidcSignin={pendingOidcSignin}
+        setPendingOidcSignin={setPendingOidcSignin}
+      >
+        {children}
+      </OidcBridge>
+    </OidcProvider>
+  );
+};
+
+// ============================================================================
+// OIDC Bridge Component
+// ============================================================================
+
+const OidcBridge: React.FC<OidcBridgeProps> = ({
+                                                 sessionUser,
+                                                 setSessionUser,
+                                                 setAuthMode,
+                                                 accessToken,
+                                                 setAccessToken,
+                                                 pendingOidcSignin,
+                                                 setPendingOidcSignin,
+                                                 children,
+                                               }) => {
+  const oidc = useOidc();
+  const [loading, setLoading] = useState(false);
+  const patchedRef = useRef(false);
+  const tokenRef = useRef<string | null>(null);
+
+  // ============================================================================
+  // Fetch Patching for Bearer Token
+  // ============================================================================
+
+  useEffect(() => {
+    // Keep latest token in a ref to avoid stale token in patched fetch
+    if (oidc.user?.access_token) {
+      tokenRef.current = oidc.user.access_token;
+      setAccessToken(oidc.user.access_token);
+    }
+
+    if (oidc.isAuthenticated && oidc.user?.access_token && !patchedRef.current) {
+      // Store original fetch if not already stored
       if (!window._originalFetch) {
         window._originalFetch = window.fetch;
       }
 
-      const hasAuthHeader = (headersInit?: HeadersInit): boolean => {
-        if (!headersInit) return false;
-        if (headersInit instanceof Headers) {
-          return headersInit.has('Authorization') || headersInit.has('authorization');
-        }
-        if (Array.isArray(headersInit)) {
-          return headersInit.some(([k]) => k.toLowerCase() === 'authorization');
-        }
-        // Record<string, string>
-        return Object.keys(headersInit).some(k => k.toLowerCase() === 'authorization');
-      };
-
+      // Patch fetch to include bearer token
       window.fetch = async (...args: Parameters<typeof fetch>) => {
-        const [url, options = {} as RequestInit] = args;
-        if (typeof url === 'string' && url.startsWith(config.API_BASE_URL) && !hasAuthHeader(options.headers)) {
-          const headers = new Headers(options.headers);
-          headers.set('Authorization', `Bearer ${token}`);
-          const newOptions: RequestInit = { ...options, headers, credentials: 'include' };
-          const originalFetch = window._originalFetch ?? window.fetch;
-          return originalFetch(url, newOptions);
-        }
+        const [url, options = {}] = args;
         const originalFetch = window._originalFetch ?? window.fetch;
-        return originalFetch(...args as [RequestInfo, RequestInit?]);
+
+        // Add bearer token for API requests without existing auth header
+        if (
+          typeof url === 'string' &&
+          url.startsWith(config.API_BASE_URL) &&
+          !hasAuthorizationHeader(options.headers) &&
+          tokenRef.current
+        ) {
+          const headers = new Headers(options.headers);
+          headers.set('Authorization', `Bearer ${tokenRef.current}`);
+          return originalFetch(url, { ...options, headers, credentials: 'include' });
+        }
+
+        return originalFetch(...args);
       };
 
-      // Fetch /users/me with token (now patched)
-      const res = await fetch(`${config.API_BASE_URL}/users/me`, { credentials: 'include' });
-      if (res.ok) {
-        const data = await res.json();
-        setUser(data.email);
-        // If we have a stored post-login route, navigate to it (works even outside /login)
-        try {
-          const target = sessionStorage.getItem('postLoginRedirect');
-          if (target) {
-            sessionStorage.removeItem('postLoginRedirect');
-            if (window.location.pathname !== target) {
-              window.location.replace(target);
-            }
-          }
-        } catch {}
-      } else {
-        setUser(accounts[0]?.username || null);
-        // Attempt same redirect even if /users/me not available yet
-        try {
-          const target = sessionStorage.getItem('postLoginRedirect');
-          if (target) {
-            sessionStorage.removeItem('postLoginRedirect');
-            if (window.location.pathname !== target) {
-              window.location.replace(target);
-            }
-          }
-        } catch {}
-      }
-    } catch (error) {
-      if (error instanceof InteractionRequiredAuthError) {
-        await signinOIDC();
-      } else {
-        console.error('Auth error:', error);
-        setUser(null);
-      }
-    } finally {
-      setLoading(false);
+      patchedRef.current = true;
     }
-  };
+  }, [oidc.isAuthenticated, oidc.user?.access_token, setAccessToken]);
 
-  const signin = async (newUser: string, callback: VoidFunction) => {
-    // Legacy session signin
-    try {
-      const body = new URLSearchParams({ username: newUser, password: 'dummy' });  // Password from form, but dummy here
-      const response = await fetch(`${config.API_BASE_URL}/auth/login`, {
-        method: 'POST',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body,
-      });
+  // ============================================================================
+  // Handle Pending OIDC Signin
+  // ============================================================================
 
-      if (response.ok) {
-        // Refetch /users/me to set user
-        const meRes = await fetch(`${config.API_BASE_URL}/users/me`, { credentials: 'include' });
-        const data = await meRes.json();
-        setUser(data.email);
-        setAuthMode('session');
-        callback();
-      } else {
-        throw new Error('Login failed');
-      }
-    } catch (err) {
-      console.error('Session signin failed:', err);
-      callback();  // Still call to allow UI update
-    }
-  };
-
-  const signinOIDC = async (callback?: VoidFunction): Promise<void> => {
-    if (inProgress === InteractionStatus.None && authMode === 'oidc') {
-      // MSAL loginRedirect does not support callback options; navigation occurs after redirect
-      return instance.loginRedirect(loginRequest)
-        .then(() => {
-          if (callback) { try { callback(); } catch {} }
-        });
-    }
-    // If we cannot initiate due to inProgress or mode, return a rejected promise to allow error handling
-    return Promise.reject(new Error('Authentication is currently in progress or OIDC is not initialized'));
-  };
-
-  const signout = async (callback?: VoidFunction) => {
-    if (authMode === 'session') {
-      await fetch(`${config.API_BASE_URL}/auth/logout`, { method: 'POST', credentials: 'include' });
-    } else if (authMode === 'oidc') {
-      instance.logoutRedirect({ postLogoutRedirectUri: window.location.origin + '/login' }).catch(console.error);
-      // Clear patch
-      if (window._originalFetch) {
-        window.fetch = window._originalFetch;
-        window._originalFetch = undefined;
-      }
-    }
-    setUser(null);
-    setAccessToken(null);
-    setAuthMode(null);
-    if (callback) callback();
-  };
-
-  const getAccessToken = async () => {
-    if (authMode !== 'oidc' || !instance) return null;
-    try {
-      const response = await instance.acquireTokenSilent(authenticatedUserProfileRequest);
-      setAccessToken(response.accessToken);  // Update stored token
-      return response.accessToken;
-    } catch {
-      return null;
-    }
-  };
-
-  const value = {
-    user,
-    loading: loading || inProgress !== InteractionStatus.None,
-    isAuthenticated: !!user,
-    authMode,
-    signin,
-    signinOIDC,
-    signout,
-    getAccessToken,
-  };
-
-  // Auto-fetch OIDC profile if accounts appear after redirect
   useEffect(() => {
-    if (authMode === 'oidc' && accounts.length > 0 && !user) {
-      fetchUserProfile().then(r => {console.log('fetchUserProfile().then')});
-    }
-  }, [accounts.length, authMode]);
+    const handlePendingSignin = async () => {
+      if (pendingOidcSignin && !oidc.isAuthenticated) {
+        try {
+          await oidc.signinRedirect();
+        } catch (error) {
+          console.error('OIDC signin redirect failed:', error);
+        } finally {
+          setPendingOidcSignin(false);
+        }
+      }
+    };
 
-  // Always render children; gating is handled by RequireAuth (shows spinner while loading)
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+    void handlePendingSignin();
+  }, [pendingOidcSignin, oidc.isAuthenticated, oidc, setPendingOidcSignin]);
+
+  // ============================================================================
+  // Handle Post-Authentication Flow
+  // ============================================================================
+
+  useEffect(() => {
+    const handlePostAuth = async () => {
+      if (!oidc.isAuthenticated || sessionUser) return;
+
+      setLoading(true);
+      try {
+        const response = await fetch(`${config.API_BASE_URL}/users/me`, {
+          credentials: 'include',
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          setSessionUser(data.email);
+        } else {
+          // Fallback to ID token claims
+          const email =
+            (oidc.user?.profile as any)?.email ||
+            (oidc.user?.profile as any)?.upn ||
+            null;
+          setSessionUser(email);
+        }
+
+        setAuthMode('oidc');
+        handlePostLoginRedirect();
+      } catch (error) {
+        console.error('Failed to load profile after OIDC login:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    void handlePostAuth();
+  }, [oidc.isAuthenticated, oidc.user?.profile, sessionUser, setSessionUser, setAuthMode]);
+
+  // ============================================================================
+  // Context Value for OIDC Mode
+  // ============================================================================
+
+  const contextValue = useMemo(
+    (): AuthContextType => ({
+      user: sessionUser,
+      loading: loading || oidc.isLoading,
+      isAuthenticated: !!sessionUser,
+      authMode: sessionUser ? 'oidc' : null,
+      signin: async (_user: string, callback: VoidFunction) => {
+        callback(); // Not used in OIDC mode
+      },
+      signinOIDC: async () => {
+        if (!oidc.isAuthenticated) {
+          await oidc.signinRedirect();
+        }
+      },
+      signout: async (callback?: VoidFunction) => {
+        if (sessionUser) {
+          try {
+            await oidc.signoutRedirect();
+          } catch (error) {
+            console.error('OIDC signout failed:', error);
+          }
+        }
+
+        // Restore original fetch
+        if (window._originalFetch) {
+          window.fetch = window._originalFetch;
+          window._originalFetch = undefined;
+        }
+        patchedRef.current = false;
+        tokenRef.current = null;
+
+        setSessionUser(null);
+        setAccessToken(null);
+        callback?.();
+      },
+      getAccessToken: async () => accessToken,
+    }),
+    [sessionUser, loading, oidc.isAuthenticated, oidc, accessToken, setSessionUser, setAccessToken]
+  );
+
+  return (
+    <AuthContext.Provider value={contextValue}>{children}</AuthContext.Provider>
+  );
 };
