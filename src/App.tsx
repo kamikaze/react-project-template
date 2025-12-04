@@ -1,50 +1,176 @@
 import React from 'react';
+import {
+  createBrowserRouter,
+  createRoutesFromElements,
+  Navigate,
+  Route,
+  RouterProvider,
+} from 'react-router-dom';
 import 'antd/dist/reset.css';
 import './App.css';
-import {createBrowserRouter, createRoutesFromElements, Navigate, Route, RouterProvider} from 'react-router-dom';
 
-import {HomePage} from './pages/HomePage';
-import {TeamListPage} from './pages/TeamListPage';
-import {TeamViewPage} from './pages/TeamViewPage';
-import {TeamEditPage} from './pages/TeamEditPage';
-import {TeamCreatePage} from './pages/TeamCreatePage';
-import {UserListPage} from './pages/UserListPage';
-import {UserViewPage} from './pages/UserViewPage';
-import {UserEditPage} from './pages/UserEditPage';
-import {UserCreatePage} from './pages/UserCreatePage';
-import {LoginPage} from './pages/LoginPage';
-import {PageLayout} from "./components/PageLayout";
-import {RequireAuth} from "./hoc/RequireAuth";
-import {AuthProvider} from "./hoc/AuthProvider";
+// ============================================================================
+// Components
+// ============================================================================
 
-const router = createBrowserRouter(createRoutesFromElements(
-  <Route path={'/'} element={<PageLayout/>}>
-    <Route index element={<RequireAuth><HomePage/></RequireAuth>}/>
+import { PageLayout } from './components/PageLayout';
 
-    <Route path={'admin'}>
-      <Route path={'teams'} element={<RequireAuth><TeamListPage/></RequireAuth>}/>
-      <Route path={'teams/:id'} element={<RequireAuth><TeamViewPage/></RequireAuth>}/>
-      <Route path={'teams/:id/edit'} element={<RequireAuth><TeamEditPage/></RequireAuth>}/>
-      <Route path={'teams/new'} element={<RequireAuth><TeamCreatePage/></RequireAuth>}/>
+// ============================================================================
+// HOCs
+// ============================================================================
+
+import { AuthProvider } from './hoc/AuthProvider';
+import { RequireAuth } from './hoc/RequireAuth';
+
+// ============================================================================
+// Pages
+// ============================================================================
+
+import { HomePage } from './pages/HomePage';
+import { LoginPage } from './pages/LoginPage';
+
+// Team Pages
+import { TeamListPage } from './pages/TeamListPage';
+import { TeamViewPage } from './pages/TeamViewPage';
+import { TeamEditPage } from './pages/TeamEditPage';
+import { TeamCreatePage } from './pages/TeamCreatePage';
+
+// User Pages
+import { UserListPage } from './pages/UserListPage';
+import { UserViewPage } from './pages/UserViewPage';
+import { UserEditPage } from './pages/UserEditPage';
+import { UserCreatePage } from './pages/UserCreatePage';
+
+// ============================================================================
+// Route Definitions
+// ============================================================================
+
+const ROUTES = {
+  HOME: '/',
+  LOGIN: '/login',
+  ADMIN: {
+    TEAMS: '/admin/teams',
+    TEAM_VIEW: '/admin/teams/:id',
+    TEAM_EDIT: '/admin/teams/:id/edit',
+    TEAM_CREATE: '/admin/teams/new',
+    USERS: '/admin/users',
+    USER_VIEW: '/admin/users/:id',
+    USER_EDIT: '/admin/users/:id/edit',
+    USER_CREATE: '/admin/users/new',
+  },
+} as const;
+
+// ============================================================================
+// Route Components
+// ============================================================================
+
+const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => (
+  <RequireAuth>{children}</RequireAuth>
+);
+
+const router = createBrowserRouter(
+  createRoutesFromElements(
+    <Route path={ROUTES.HOME} element={<PageLayout />}>
+      {/* Home Route */}
       <Route
-        path={'users'}
-        element={<RequireAuth><UserListPage/></RequireAuth>}
+        index
+        element={
+          <ProtectedRoute>
+            <HomePage />
+          </ProtectedRoute>
+        }
       />
-      <Route path={'users/:id'} element={<RequireAuth><UserViewPage/></RequireAuth>}/>
-      <Route path={'users/:id/edit'} element={<RequireAuth><UserEditPage/></RequireAuth>}/>
-      <Route path={'users/new'} element={<RequireAuth><UserCreatePage/></RequireAuth>}/>
-    </Route>
-    <Route path={'login'} element={<LoginPage/>}/>
-    <Route path={'*'} element={<Navigate to={'/'} replace/>}/>
-  </Route>
-))
 
-function App() {
+      {/* Admin Routes */}
+      <Route path="admin">
+        {/* Team Routes */}
+        <Route
+          path="teams"
+          element={
+            <ProtectedRoute>
+              <TeamListPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="teams/new"
+          element={
+            <ProtectedRoute>
+              <TeamCreatePage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="teams/:id"
+          element={
+            <ProtectedRoute>
+              <TeamViewPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="teams/:id/edit"
+          element={
+            <ProtectedRoute>
+              <TeamEditPage />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* User Routes */}
+        <Route
+          path="users"
+          element={
+            <ProtectedRoute>
+              <UserListPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="users/new"
+          element={
+            <ProtectedRoute>
+              <UserCreatePage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="users/:id"
+          element={
+            <ProtectedRoute>
+              <UserViewPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="users/:id/edit"
+          element={
+            <ProtectedRoute>
+              <UserEditPage />
+            </ProtectedRoute>
+          }
+        />
+      </Route>
+
+      {/* Auth Routes */}
+      <Route path={ROUTES.LOGIN} element={<LoginPage />} />
+
+      {/* Catch-all Route */}
+      <Route path="*" element={<Navigate to={ROUTES.HOME} replace />} />
+    </Route>
+  )
+);
+
+// ============================================================================
+// App Component
+// ============================================================================
+
+const App: React.FC = () => {
   return (
     <AuthProvider>
-      <RouterProvider router={router}/>
+      <RouterProvider router={router} />
     </AuthProvider>
   );
-}
+};
 
 export default App;
