@@ -1,16 +1,16 @@
 const local = {
-  API_BASE_URL: 'http://localhost:8000/api/v1',
-  WS_URL: 'ws://localhost:8000/api/v1/ws'
+  API_BASE_URL: 'http://localhost:8000/api/app/v1',
+  WS_URL: 'ws://localhost:8000/api/app/v1/ws'
 };
 
 const dev = {
-  API_BASE_URL: '/api/v1',
-  WS_URL: 'ws://dev.example.com/api/v1/ws'
+  API_BASE_URL: '/api/app/v1',
+  WS_URL: 'ws://dev.example.com/api/app/v1/ws'
 };
 
 const prod = {
-  API_BASE_URL: '/api/v1',
-  WS_URL: 'ws://example.com/api/v1/ws'
+  API_BASE_URL: '/api/app/v1',
+  WS_URL: 'ws://example.com/api/app/v1/ws'
 };
 
 const stage = import.meta.env.VITE_STAGE || 'local';
