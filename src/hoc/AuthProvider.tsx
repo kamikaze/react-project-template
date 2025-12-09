@@ -75,14 +75,14 @@ const fetchOidcConfig = async (): Promise<AuthProviderProps | null> => {
       // Prefer sessionStorage to limit token persistence in browser
       userStore: new WebStorageStateStore({ store: window.sessionStorage }),
       onSigninCallback: () => {
-        window.history.replaceState(
-          {},
-          document.title,
-          window.location.pathname
-        );
+        // After successful callback, ensure we navigate AWAY from the callback route.
+        // Using hard navigation so React Router definitely leaves the callback route
+        // (history.replaceState doesn't emit popstate and may not re-render routes).
+        window.location.replace(window.location.origin);
       },
-      automaticSilentRenew: true,
-      monitorSession: true,
+      // Disable background renew/session monitor to avoid periodic /token calls
+      automaticSilentRenew: false,
+      monitorSession: false,
     };
   } catch (error) {
     console.error('Failed to load OIDC config:', error);
@@ -159,19 +159,25 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
     const initializeAuth = async () => {
       // Load OIDC config first
-      const config = await fetchOidcConfig();
-      if (!cancelled && config) {
-        setOidcConfig(config);
+      const cfg = await fetchOidcConfig();
+      if (cancelled) return;
+
+      if (cfg) {
+        // If OIDC is configured, prefer OIDC flow and skip legacy session check
+        setOidcConfig(cfg);
+        setAuthMode('oidc');
+        setLoading(false);
+        return;
       }
 
-      // Check for existing session
+      // Fall back to legacy session detection only when OIDC is not configured
       const sessionUser = await checkExistingSession();
       if (!cancelled) {
         if (sessionUser) {
           setUser(sessionUser);
           setAuthMode('session');
         } else {
-          setAuthMode('oidc');
+          setAuthMode(null);
         }
         setLoading(false);
       }
@@ -311,14 +317,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     ...oidcConfig,
     redirect_uri: `${window.location.origin}/oidc/callback`,
     post_logout_redirect_uri: window.location.origin,
-    automaticSilentRenew: true,
+    // Disable background silent renew and session monitor to reduce background traffic
+    automaticSilentRenew: false,
     onSigninCallback: () => {
       // Clean up URL after successful login
-      window.history.replaceState(
-        {},
-        document.title,
-        window.location.pathname + window.location.search
-      );
+      // Use hard navigation to ensure router leaves /oidc/callback.
+      // This avoids lingering on callback route and potential token loops.
+      window.location.replace(window.location.origin);
     },
   } as AuthProviderProps;
 
@@ -429,21 +434,12 @@ const OidcBridge: React.FC<OidcBridgeProps> = ({
 
       setLoading(true);
       try {
-        const response = await fetch(`${config.API_BASE_URL}/users/me`, {
-          credentials: 'include',
-        });
-
-        if (response.ok) {
-          const data = await response.json();
-          setSessionUser(data.email);
-        } else {
-          // Fallback to ID token claims
-          const email =
-            (oidc.user?.profile as any)?.email ||
-            (oidc.user?.profile as any)?.upn ||
-            null;
-          setSessionUser(email);
-        }
+        // Use ID token claims directly to avoid extra backend roundtrip
+        const email =
+          (oidc.user?.profile as any)?.email ||
+          (oidc.user?.profile as any)?.preferred_username ||
+          null;
+        setSessionUser(email);
 
         setAuthMode('oidc');
         handlePostLoginRedirect();
