@@ -1,11 +1,11 @@
 {
-  "Log in": "Ieiet",
+  "Log in": "Ienākt",
   "Please input your password!": "Lūgums ievadīt paroli!",
   "Please input your username!": "Lūgums ievadīt lietotājvārdu!",
   "Password": "Parole",
   "Username": "Lietotājvārds",
   "Error occurred": "Notika kļūda",
-  "Unable to login": "Nesanāca ieiet",
+  "Unable to login": "Nesanāca ienākt",
   "Portal": "Portāls",
   "Logout": "Izeja",
   "Login": "Ieeja",
@@ -20,6 +20,7 @@
   "Create": "Izveidot",
   "Name": "Nosaukums",
   "Search": "Meklēt",
-  "Log in with": "Ieiet ar",
-  "Reset": "Atiestatīt"
+  "Log in with": "Ienākt ar",
+  "Reset": "Atiestatīt",
+  "Email": "E-pasts"
 }

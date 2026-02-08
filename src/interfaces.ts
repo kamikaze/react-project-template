@@ -5,11 +5,11 @@ export interface APIPageResponse<T> {
   size: number;
 }
 
-export interface UserItem {
-  id: string
+export interface UserProfile {
+  uid: string
   created_at: string
   updated_at: string | null
-  username: string
-  team: string
+  name: string | null
+  email: string | null
 }
 

@@ -36,11 +36,12 @@ import { TeamEditPage } from './pages/TeamEditPage';
 import { TeamCreatePage } from './pages/TeamCreatePage';
 
 // User Pages
-import { UserListPage } from './pages/UserListPage';
+import {UserListPage, userResultLoader} from './pages/UserListPage';
 import { UserViewPage } from './pages/UserViewPage';
 import { UserEditPage } from './pages/UserEditPage';
 import { UserCreatePage } from './pages/UserCreatePage';
 import {UserProfilePage} from "./pages/UserProfilePage.tsx";
+import {authLoader} from "./auth.ts";
 
 // ============================================================================
 // Route Definitions
@@ -133,6 +134,7 @@ const router = createBrowserRouter(
               <UserListPage />
             </ProtectedRoute>
           }
+          loader={authLoader(userResultLoader)}
         />
         <Route
           path="users/new"
