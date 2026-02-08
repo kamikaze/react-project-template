@@ -1,6 +1,5 @@
 import config from "./config";
 import type {APIPageResponse, UserProfile} from "./interfaces";
-import {useAuth} from "./hook/useAuth.tsx";
 
 export class BackendService {
   private static buildHeaders(token: string | null): HeadersInit {
@@ -15,9 +14,7 @@ export class BackendService {
     return headers;
   }
 
-  static async getUsers(queryParams: Record<string, string | number>): Promise<APIPageResponse<UserProfile>> {
-    const { getAccessToken } = useAuth();
-    const token = await getAccessToken();
+  static async getUsers(queryParams: Record<string, string | number>, token: string | null = null): Promise<APIPageResponse<UserProfile>> {
     const query = new URLSearchParams(queryParams as Record<string, string>).toString();
     const response = await fetch(`${config.API_BASE_URL}/users?${query}`, {
       method: 'GET',

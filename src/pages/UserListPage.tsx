@@ -7,10 +7,13 @@ import type {ColumnsType} from "antd/lib/table";
 import Title from "antd/lib/typography/Title";
 import moment from "moment";
 import "moment-timezone";
+import {User} from "oidc-client-ts";
 import {prepareQuery} from "../helpers.ts";
 import type {APIPageResponse, UserProfile} from "../interfaces.ts";
 import useHttp from "../hook/http.ts";
 import {BackendService} from "../services.ts";
+import {useAuth} from "../hook/useAuth.tsx";
+import config from "../config.ts";
 
 const DEFAULT_SEARCH_PARAMS = {order_by: '-created_at'};
 
@@ -23,6 +26,7 @@ const UserListPage = () => {
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [searchParams, setSearchParams] = useSearchParams(DEFAULT_SEARCH_PARAMS);
   const {t} = useTranslation();
+  const {getAccessToken} = useAuth();
 
   const columns: ColumnsType<UserProfile> = [
     {
@@ -72,7 +76,8 @@ const UserListPage = () => {
     const query = prepareQuery(searchParams);
 
     try {
-      const result = await BackendService.getUsers(query);
+      const token = await getAccessToken();
+      const result = await BackendService.getUsers(query, token);
 
       setDataSource(result.items);
       setCurrentPage(result.page);
@@ -137,7 +142,27 @@ const userResultLoader = async ({request}: any) => {
 
   const query: Record<string, string> = prepareQuery(searchParams);
 
-  return BackendService.getUsers(query);
+  // Load token from storage (standard oidc-client-ts behavior)
+  const oidcStorage = window.sessionStorage.getItem(`oidc.user:${config.API_BASE_URL}/config:${config.API_BASE_URL}/config`); // This might be tricky to guess exactly
+  // Actually, better to check how it's stored in AuthProvider.
+  // In AuthProvider.tsx: userStore: new WebStorageStateStore({ store: window.sessionStorage })
+  // The key is usually `oidc.user:<authority>:<client_id>`
+
+  // Let's try to find the key in sessionStorage
+  let token: string | null = null;
+  for (let i = 0; i < window.sessionStorage.length; i++) {
+    const key = window.sessionStorage.key(i);
+    if (key?.startsWith('oidc.user:')) {
+      const storedUser = window.sessionStorage.getItem(key);
+      if (storedUser) {
+        const user = User.fromStorageString(storedUser);
+        token = user.access_token;
+        break;
+      }
+    }
+  }
+
+  return BackendService.getUsers(query, token);
 }
 
 export {UserListPage, userResultLoader};
