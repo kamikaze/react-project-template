@@ -67,6 +67,8 @@ jobs:
       tag: ${{ steps.extract_tag.outputs.tag }}  # Save the extracted tag name to outputs
 
   build:
+    needs:
+      - prepare
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
