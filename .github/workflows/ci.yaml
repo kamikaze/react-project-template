@@ -102,7 +102,7 @@ jobs:
           name: digests-${{ steps.artifact.outputs.name }}
           path: /tmp/digests/*
 
-  manifest:
+  push:
     needs: build
     runs-on: ubuntu-latest
 
@@ -126,4 +126,7 @@ jobs:
       - name: Create multi-arch manifest & tag
         working-directory: /tmp/digests
         run: |
-          docker buildx imagetools create ${{ needs.prepare.outputs.tags }} $(printf '${{ needs.prepare.outputs.image }}@sha256:%s ' *)
+          TAGS=$(printf -- "-t %s " ${{ needs.prepare.outputs.tags }})
+          docker buildx imagetools create \
+            $TAGS \
+            $(printf '${{ needs.prepare.outputs.image }}@sha256:%s ' *)
