@@ -89,10 +89,17 @@ jobs:
           digest="${{ steps.build.outputs.digest }}"
           touch "/tmp/digests/${digest#sha256:}"
 
+      - name: Prepare artifact name
+        id: artifact
+        run: |
+          safe="${{ matrix.platform }}"
+          safe="${safe//\//-}"
+          echo "name=$safe" >> "$GITHUB_OUTPUT"
+
       - name: Upload digest
         uses: actions/upload-artifact@v6
         with:
-          name: digests-${{ matrix.platform }}
+          name: digests-${{ steps.artifact.outputs.name }}
           path: /tmp/digests/*
 
   manifest:
