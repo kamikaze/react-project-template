@@ -44,10 +44,7 @@ jobs:
         uses: docker/metadata-action@v5
         with:
           images: ${{ steps.image.outputs.image }}
-          tags: |
-            type=ref,event=tag
-            type=semver,pattern={{version}}
-            type=semver,pattern={{major}}.{{minor}}
+          tags: type=ref,event=tag
           labels: |
             org.opencontainers.image.source=https://github.com/${{ github.repository }}
 
