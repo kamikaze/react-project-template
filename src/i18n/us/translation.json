@@ -20,7 +20,8 @@
   "Create": "Create",
   "Name": "Name",
   "Search": "Search",
-  "Log in with": "Log in with",
+  "Log in with OIDC": "Log in with OIDC",
+  "Please choose an authentication method:": "Please choose an authentication method:",
   "Reset": "Reset",
   "Email": "Email"
 }

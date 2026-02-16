@@ -15,7 +15,7 @@ import {useAuth} from "../hook/useAuth";
 import {useTranslation} from "react-i18next";
 
 const MainMenu = () => {
-  const {user, signout} = useAuth();
+  const {user, signout, signinOIDC} = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [language, setLanguage] = useState<string>('LV');
@@ -69,11 +69,9 @@ const MainMenu = () => {
         </Menu.Item>
       </Menu.SubMenu>
       {!user &&
-        <Menu.Item key='/login'>
-          <NavLink to={config.PATH_ROOT + '/login'}>
-            <LoginOutlined/>
-            <span>{t('Login')}</span>
-          </NavLink>
+        <Menu.Item key='/login' onClick={() => signinOIDC()}>
+          <LoginOutlined/>
+          <span>{t('Login')}</span>
         </Menu.Item>
       }
       {user &&

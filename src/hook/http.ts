@@ -3,7 +3,6 @@ import {useCallback, useState} from 'react';
 
 export default function useHttp() {
   const [loading, setLoading] = useState(false);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [error, setError] = useState(null);
 
   const request = useCallback(
@@ -21,13 +20,7 @@ export default function useHttp() {
         const data = await response.json();
 
         if (!response.ok) {
-          if (response.status === 401) {
-            setIsAuthenticated(false);
-          }
-
           throw new Error(data.message || 'Something went wrong');
-        } else {
-          setIsAuthenticated(true);
         }
 
         setLoading(false);
@@ -44,5 +37,5 @@ export default function useHttp() {
 
   const clearError = useCallback(() => setError(null), []);
 
-  return {loading, request, error, clearError, isAuthenticated};
+  return {loading, request, error, clearError};
 }

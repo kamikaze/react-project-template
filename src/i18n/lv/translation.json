@@ -20,7 +20,8 @@
   "Create": "Izveidot",
   "Name": "Nosaukums",
   "Search": "Meklēt",
-  "Log in with": "Ienākt ar",
+  "Log in with OIDC": "Ienākt ar OIDC",
+  "Please choose an authentication method:": "Lūdzu, izvēlieties autentifikācijas veidu:",
   "Reset": "Atiestatīt",
   "Email": "E-pasts"
 }

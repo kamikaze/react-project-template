@@ -10,7 +10,7 @@ interface RequireAuthProps extends PropsWithChildren {
 
 export const RequireAuth: React.FC<RequireAuthProps> = ({ children }) => {
   const location = useLocation();
-  const { user, loading } = useAuth();
+  const { isAuthenticated, loading } = useAuth();
 
   if (loading) {
     return (
@@ -20,7 +20,7 @@ export const RequireAuth: React.FC<RequireAuthProps> = ({ children }) => {
     );
   }
 
-  if (!user) {
+  if (!isAuthenticated) {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 

@@ -26,7 +26,6 @@ const UserListPage = () => {
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [searchParams, setSearchParams] = useSearchParams(DEFAULT_SEARCH_PARAMS);
   const {t} = useTranslation();
-  const {getAccessToken} = useAuth();
 
   const columns: ColumnsType<UserProfile> = [
     {
@@ -76,8 +75,9 @@ const UserListPage = () => {
     const query = prepareQuery(searchParams);
 
     try {
-      const token = await getAccessToken();
-      const result = await BackendService.getUsers(query, token);
+      // We don't strictly need to pass the token here because the fetch patch
+      // in AuthProvider will automatically add it for all requests to API_BASE_URL.
+      const result = await BackendService.getUsers(query);
 
       setDataSource(result.items);
       setCurrentPage(result.page);
@@ -101,7 +101,7 @@ const UserListPage = () => {
       params['order_by'] = (sorter.order === 'descend' ? '-' : '') + sorter.field
     }
     setSearchParams(params);
-  }, [request]);
+  }, [setSearchParams]);
 
   useEffect(() => {
     setDataSource(loaderResponse.items);

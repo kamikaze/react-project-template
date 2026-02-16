@@ -1,6 +1,6 @@
 import React, {useCallback, useEffect} from 'react';
 import {useLocation, useNavigate} from 'react-router-dom';
-import {Button, Form, Input, Layout, message} from 'antd';
+import {Button, Layout, message} from 'antd';
 import {useTranslation} from 'react-i18next';
 import {LoginOutlined} from '@ant-design/icons';
 import {useAuth} from '../hook/useAuth';
@@ -11,26 +11,12 @@ import {useAuth} from '../hook/useAuth';
 
 const {Content} = Layout;
 
-const FORM_LAYOUT = {
-  labelCol: {span: 8},
-  wrapperCol: {span: 16},
-};
-
-const TAIL_LAYOUT = {
-  wrapperCol: {offset: 8, span: 16},
-};
-
 const POST_LOGIN_REDIRECT_KEY = 'postLoginRedirect';
 const DEFAULT_REDIRECT_PATH = '/';
 
 // ============================================================================
 // Types
 // ============================================================================
-
-interface LoginFormValues {
-  username: string;
-  password: string;
-}
 
 interface LocationState {
   from?: {
@@ -94,7 +80,7 @@ const extractAuthError = (): { error: string | null; description: string | null 
 export const LoginPage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const {signin, signinOIDC, user} = useAuth();
+  const {signinOIDC, user, loading} = useAuth();
   const {t} = useTranslation();
 
   const redirectPath = getRedirectPath(location);
@@ -102,25 +88,6 @@ export const LoginPage: React.FC = () => {
   // ============================================================================
   // Form Handlers
   // ============================================================================
-
-  const handleLegacyLogin = useCallback(
-    async (values: LoginFormValues): Promise<void> => {
-      try {
-        await signin(values.username, () => {
-          message.success('Login succeeded');
-          navigate(redirectPath, {replace: true});
-        });
-      } catch (error) {
-        message.error('Login failed. Please check your credentials.');
-        console.error('Legacy login error:', error);
-      }
-    },
-    [signin, navigate, redirectPath]
-  );
-
-  const handleFormFailed = useCallback((errorInfo: any): void => {
-    console.error('Form validation failed:', errorInfo);
-  }, []);
 
   const handleOidcLogin = useCallback(async (): Promise<void> => {
     // Preserve intended route across redirects
@@ -139,22 +106,6 @@ export const LoginPage: React.FC = () => {
   // ============================================================================
   // Effects
   // ============================================================================
-
-  // Redirect if user is already authenticated
-  useEffect(() => {
-    if (!user) return;
-
-    const storedRedirect = sessionStorage.getItem(POST_LOGIN_REDIRECT_KEY);
-    const targetPath = storedRedirect || redirectPath;
-
-    if (storedRedirect) {
-      sessionStorage.removeItem(POST_LOGIN_REDIRECT_KEY);
-    }
-
-    if (location.pathname !== targetPath) {
-      navigate(targetPath, {replace: true});
-    }
-  }, [user, location.pathname, navigate, redirectPath]);
 
   // Display authentication errors from IdP redirect
   useEffect(() => {
@@ -179,66 +130,23 @@ export const LoginPage: React.FC = () => {
             padding: 24,
             margin: 0,
             minHeight: 280,
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
           }}
         >
-          <Form<LoginFormValues>
-            {...FORM_LAYOUT}
-            name="login-form"
-            initialValues={{username: '', password: ''}}
-            onFinish={handleLegacyLogin}
-            onFinishFailed={handleFormFailed}
-            style={{maxWidth: 600, margin: '0 auto'}}
-          >
-            {/* Username Field */}
-            <Form.Item
-              label={t('Username')}
-              name="username"
-              rules={[
-                {
-                  required: true,
-                  message: t('Please input your username!'),
-                },
-              ]}
+          <div style={{ textAlign: 'center' }}>
+            <h2>{t('Login')}</h2>
+            <p>{t('Please choose an authentication method:')}</p>
+            <Button
+              type="primary"
+              size="large"
+              onClick={handleOidcLogin}
+              icon={<LoginOutlined/>}
             >
-              <Input placeholder={t('Username')} autoComplete="username"/>
-            </Form.Item>
-
-            {/* Password Field */}
-            <Form.Item
-              label={t('Password')}
-              name="password"
-              rules={[
-                {
-                  required: true,
-                  message: t('Please input your password!'),
-                },
-              ]}
-            >
-              <Input.Password
-                placeholder={t('Password')}
-                autoComplete="current-password"
-              />
-            </Form.Item>
-
-            {/* Action Buttons */}
-            <Form.Item {...TAIL_LAYOUT}>
-              <Button
-                type="primary"
-                htmlType="submit"
-                icon={<LoginOutlined/>}
-                style={{marginRight: 8}}
-              >
-                {t('Log in')}
-              </Button>
-              <Button
-                type="default"
-                onClick={handleOidcLogin}
-                icon={<LoginOutlined/>}
-              >
-                {t('Log in with')}
-              </Button>
-            </Form.Item>
-          </Form>
+              {t('Log in with OIDC')}
+            </Button>
+          </div>
         </Content>
       </Layout>
     </Layout>
