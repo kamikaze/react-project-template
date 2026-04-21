@@ -41,3 +41,24 @@
 .ant-table-row {
   cursor: pointer;
 }
+
+
+.radio-btn.ant-radio-button-wrapper-checked.ok {
+  background-color: #00a900 !important;
+  border-color: #00a900 !important;
+}
+
+.radio-btn.ant-radio-button-wrapper-checked.warning {
+  background-color: #db4100 !important;
+  border-color: #db4100 !important;
+}
+
+.radio-btn.ant-radio-button-wrapper-checked.error {
+  background-color: #b10000 !important;
+  border-color: #b10000 !important;
+}
+
+.radio-btn.ant-radio-button-wrapper-checked.critical {
+  background-color: #b10000 !important;
+  border-color: #b10000 !important;
+}

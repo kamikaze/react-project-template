@@ -3,7 +3,7 @@ import {createRoot} from 'react-dom/client'
 import './index.css'
 import App from './App.tsx'
 import {ConfigProvider, Spin} from "antd";
-import lvLV from "antd/lib/locale/lv_LV";
+import lvLV from "antd/es/locale/lv_LV";
 
 createRoot(document.getElementById('root')!).render(
   <React.StrictMode>

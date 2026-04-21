@@ -1,28 +1,44 @@
-// Frontend: src/hoc/RequireAuth.tsx (updated to handle loading with AntD Spin)
-import React, {type PropsWithChildren} from 'react';
-import { Navigate, useLocation } from 'react-router-dom';
-import { Spin } from 'antd';
-import { useAuth } from '../hook/useAuth';
+import { useAuth } from "../hook/useAuth";
+import React, { useEffect } from "react";
+import { Spin } from "antd";
 
-interface RequireAuthProps extends PropsWithChildren {
-  children: React.ReactNode;
-}
+const RequireAuth = ({ children, roles }: { children: React.JSX.Element, roles?: string[] }) => {
+  const auth = useAuth();
 
-export const RequireAuth: React.FC<RequireAuthProps> = ({ children }) => {
-  const location = useLocation();
-  const { isAuthenticated, loading } = useAuth();
+  useEffect(() => {
+    if (!auth.isLoading && !auth.isAuthenticated && !auth.activeNavigator) {
+      auth.signinRedirect();
+    }
+  }, [auth.isLoading, auth.isAuthenticated, auth.activeNavigator, auth]);
 
-  if (loading) {
+  if (auth.isLoading) {
+    return <Spin fullscreen />;
+  }
+
+  if (auth.error) {
     return (
-      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
-        <Spin size="large" />
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', flexDirection: 'column' }}>
+        <h2>Authentication Error</h2>
+        <p>{auth.error.message}</p>
+        <button onClick={() => auth.signinRedirect()}>Try Again</button>
       </div>
     );
   }
 
-  if (!isAuthenticated) {
-    return <Navigate to="/login" state={{ from: location }} replace />;
+  if (!auth.isAuthenticated) {
+    return <Spin fullscreen tip="Redirecting to login..." />;
   }
 
-  return <>{children}</>;
-};
+  if (roles && !roles.some(r => auth.roles.includes(r))) {
+    return (
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', flexDirection: 'column' }}>
+        <h2>Access Denied</h2>
+        <p>You do not have permission to access this page.</p>
+      </div>
+    );
+  }
+
+  return children;
+}
+
+export { RequireAuth };

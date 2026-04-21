@@ -11,12 +11,12 @@ const PageLayout = () => {
   const {t} = useTranslation();
 
   return (
-    <Layout>
+    <Layout style={{height: '100vh'}}>
       <Header className='header'>
         <div className='logo'/>
         <MainMenu/>
       </Header>
-      <Layout>
+      <Layout style={{height: 'calc(100vh - 64px)'}}>
         <Sider width={200} className='site-layout-background' collapsible={true} defaultCollapsed={true}
                collapsedWidth={0}>
           <Menu
@@ -33,13 +33,16 @@ const PageLayout = () => {
             </Menu.Item>
           </Menu>
         </Sider>
-        <Layout>
+        <Layout style={{padding: '0 24px 24px', height: '100%'}}>
           <Content
             className='site-layout-background'
             style={{
               padding: 24,
               margin: 0,
-              minHeight: 280
+              height: '100%',
+              overflow: 'auto',
+              display: 'flex',
+              flexDirection: 'column'
             }}
           >
             <Outlet/>

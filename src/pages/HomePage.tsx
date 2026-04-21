@@ -1,6 +1,7 @@
 import {useTranslation} from "react-i18next";
-import Title from "antd/lib/typography/Title";
+import {Typography} from "antd";
 
+const {Title} = Typography;
 
 const HomePage = () => {
   const {t} = useTranslation();
