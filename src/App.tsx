@@ -16,6 +16,7 @@ import {LoginPage} from './pages/LoginPage';
 import {PageLayout} from "./components/PageLayout";
 import {RequireAuth} from "./hoc/RequireAuth";
 import {AuthProvider} from "./hoc/AuthProvider";
+import {UserProfilePage} from "./pages/UserProfilePage.tsx";
 
 const router = createBrowserRouter(createRoutesFromElements(
   <Route path={'/'} element={<RequireAuth><PageLayout /></RequireAuth>}>
@@ -31,6 +32,14 @@ const router = createBrowserRouter(createRoutesFromElements(
       <Route path={'users/new'} element={<UserCreatePage />} />
     </Route>
     <Route path={'login'} element={<LoginPage />} />
+    <Route
+      path={'users/me'}
+      element={
+        <RequireAuth>
+          <UserProfilePage />
+        </RequireAuth>
+      }
+    />
     <Route path={'*'} element={<Navigate to={'/'} replace />} />
   </Route>
 ))

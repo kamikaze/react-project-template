@@ -1,38 +1,21 @@
-import {useEffect, useState} from "react";
-import config from "../config.ts";
-import {useAuth} from "../hook/useAuth";
-
-type UserProfileData = {
-  email?: string;
-};
+import { useAuth } from "../hook/useAuth";
 
 const UserProfilePage = () => {
-  const { getAccessToken } = useAuth();
-  const [profileData, setProfileData] = useState<UserProfileData>();
+  const { user, isAuthenticated, loading } = useAuth();
 
-  useEffect(() => {
-    (async () => {
-      try {
-        const token = await getAccessToken();
-        const response = await fetch(`${config.API_BASE_URL}/users/me`, {
-          headers: token ? { Authorization: `Bearer ${token}` } : undefined,
-        });
-        setProfileData(await response.json());
-      } catch (e) {
-        console.error(e);
-      }
-    })();
-  }, [getAccessToken]);
-
-  if (!profileData) {
+  if (loading) {
     return <div>Loading...</div>;
+  }
+
+  if (!isAuthenticated || !user) {
+    return <div>Not authenticated</div>;
   }
 
   return (
     <ul>
-      <li>{profileData.email}</li>
+      <li>{user}</li>
     </ul>
   );
-}
+};
 
-export {UserProfilePage};
+export { UserProfilePage };
