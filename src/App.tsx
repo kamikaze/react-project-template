@@ -16,7 +16,6 @@ import {LoginPage} from './pages/LoginPage';
 import {PageLayout} from "./components/PageLayout";
 import {RequireAuth} from "./hoc/RequireAuth";
 import {AuthProvider} from "./hoc/AuthProvider";
-import {authLoader} from "./auth";
 
 const router = createBrowserRouter(createRoutesFromElements(
   <Route path={'/'} element={<RequireAuth><PageLayout /></RequireAuth>}>
