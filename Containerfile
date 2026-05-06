@@ -22,8 +22,8 @@ FROM nginx:stable-alpine AS run-image
 WORKDIR /usr/share/nginx/html/
 
 COPY --from=build-image /app/dist/ /usr/share/nginx/html/
-COPY .docker/nginx.template /etc/nginx/nginx.template
-COPY .docker/docker-entrypoint.sh /
+COPY .docker/nginx/nginx.template /etc/nginx/nginx.template
+COPY .docker/nginx/docker-entrypoint.sh /
 
 RUN ["chmod", "+x", "/docker-entrypoint.sh"]
 CMD ["sh", "/docker-entrypoint.sh"]

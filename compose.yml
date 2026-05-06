@@ -1,0 +1,50 @@
+name: react-project-template
+
+services:
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.6.1
+    entrypoint: [ "/opt/keycloak/data/import/keycloak-entrypoint.sh" ]
+    environment:
+      # Disable Scalable Vector Extension, otherwise Critical error in keycloak container (emulation does not work locally on Mac M4 >15.2)
+      JAVA_TOOL_OPTIONS: ${KEYCLOAK_JAVA_TOOL_OPTIONS:-}
+      KC_DB: dev-file
+      KC_DB_USERNAME: dev
+      KC_DB_PASSWORD: dev
+      KC_BOOTSTRAP_ADMIN_USERNAME: dev
+      KC_BOOTSTRAP_ADMIN_PASSWORD: dev
+      KC_HOSTNAME_STRICT: false
+      KC_HTTP_ENABLED: true
+    volumes:
+      - keycloak-data:/opt/keycloak/data
+      - ./.docker/keycloak/data/import:/opt/keycloak/data/import
+    restart: unless-stopped
+    ports:
+      - "8085:8080"
+    networks:
+      common:
+        aliases:
+          - keycloak
+
+  react-project:
+    build:
+      context: ./
+      dockerfile: Containerfile
+      args:
+        ENVIRONMENT: local
+    ports:
+      - "5173:8080"
+    depends_on:
+      keycloak:
+        condition: service_started
+    networks:
+      common:
+        aliases:
+          - react-project
+
+volumes:
+  keycloak-data:
+
+
+networks:
+  common:
+    driver: bridge
